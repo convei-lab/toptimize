@@ -1,0 +1,3 @@
+[submodule "torch_geometric"]
+	path = torch_geometric
+	url = https://github.com/convei-lab/torch_geometric
