@@ -100,7 +100,7 @@ def train():
     # print('A_neg', A_neg, A_neg.shape)
 
     task_loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
-    link_pred_loss = F.binary_cross_entropy_with_logits(e_new, A)
+    link_pred_loss = F.mse_loss(e_new, A)
     # link_pred_loss = kl_divergence(e_new, A) # GIB paper
     # link_pred_loss = F.kl_div(e_new, A, reduction='none')
     # link_pred_loss = F.cross_entropy(e_new, A.long())
