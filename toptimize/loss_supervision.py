@@ -10,6 +10,7 @@ from torch_geometric.utils import to_dense_adj
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 import pickle
+import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--use_gdc', action='store_true',
@@ -69,7 +70,7 @@ optimizer = torch.optim.Adam([
     dict(params=model.conv2.parameters(), weight_decay=0)
 ], lr=0.01)  # Only perform weight-decay on first convolution.
 
-with open('final_x.pickle', 'rb') as f:
+with open('yyt_final_x.pickle', 'rb') as f:
      final_x = pickle.load(f)
 
 def train():
@@ -80,9 +81,9 @@ def train():
     # print('#######################')
     # print(b, b.shape)
     pred, target = b[data.train_mask], data.y[data.train_mask]
-    loss = F.nll_loss(pred, target) + F.mse_loss(a, final_x, reduction = 'sum')
+    loss = F.nll_loss(pred, target) + 1.5 * F.mse_loss(a, final_x, reduction = 'sum')
     # F.mse_loss(a, final_x, reduction = 'sum')
-    print(loss)
+    # F.binary_cross_entropy(a, final_x)
     loss.backward()
     optimizer.step()
     return a, b
@@ -100,21 +101,49 @@ def test():
     return accs
 
 best_val_acc = test_acc = 0
-for epoch in range(1, 201):
-    train()
-    train_acc, val_acc, tmp_test_acc = test()
-    # if epoch == 200:
-    #     a, b = train()
-    #     with open('final_x.pickle', 'wb') as f:
-    #         pickle.dump(a, f)
-    #     with open('logit.pickle', 'wb') as f:
-    #         pickle.dump(b, f)
+val_accs, test_accs = [], []
+for i, run in enumerate(range(20)):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model, data = Net().to(device), data.to(device)
+    optimizer = torch.optim.Adam([
+        dict(params=model.conv1.parameters(), weight_decay=5e-4),
+        dict(params=model.conv2.parameters(), weight_decay=0)
+    ], lr=0.01)  # Only perform weight-decay on first convolution.
+    best_val_acc = test_acc = 0
+    for epoch in range(1, 201):
+        train()
+        train_acc, val_acc, tmp_test_acc = test()
+        # if epoch == 200:
+        #     a, b = train()
+        #     with open('final_x.pickle', 'wb') as f:
+        #         pickle.dump(a, f)
+        #     with open('logit.pickle', 'wb') as f:
+        #         pickle.dump(b, f)
 
-    if val_acc > best_val_acc:
-        best_val_acc = val_acc
-        test_acc = tmp_test_acc
-    log = 'Epoch: {:03d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+        if val_acc >= best_val_acc:
+            best_val_acc = val_acc
+            test_acc = tmp_test_acc
+        log = 'Epoch: {:03d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
     print(log.format(epoch, train_acc, best_val_acc, test_acc))
+
+    val_accs.append(best_val_acc)
+    test_accs.append(test_acc)
+
+print('Done\n')
+
+# Analytics
+print('Task Loss + MSE Loss')
+
+val_accs = np.array(val_accs)
+mean = np.mean(val_accs)
+std = np.std(val_accs)
+
+print('Val. Acc.:', mean, '+/-', str(std))
+test_accs = np.array(test_accs)
+mean = np.mean(test_accs)
+std = np.std(test_accs)
+
+print('Test. Acc.:', mean, '+/-', str(std))
 
 
 
