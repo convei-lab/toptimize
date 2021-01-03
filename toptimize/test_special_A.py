@@ -63,18 +63,18 @@ class Net(torch.nn.Module):
 
 # data.edge_index = edge_index.t().contiguous()
 
-with open('A_add_TP.pickle', 'rb') as f:
+with open('yyt_A.pickle', 'rb') as f:
      A_add_TP = pickle.load(f)
 
 edge_index = torch.nonzero(A_add_TP == 1, as_tuple=False)
 data.edge_index = edge_index.t().contiguous()
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model, data = Net().to(device), data.to(device)
-optimizer = torch.optim.Adam([
-    dict(params=model.conv1.parameters(), weight_decay=5e-4),
-    dict(params=model.conv2.parameters(), weight_decay=0)
-], lr=0.01)  # Only perform weight-decay on first convolution.
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# model, data = Net().to(device), data.to(device)
+# optimizer = torch.optim.Adam([
+#     dict(params=model.conv1.parameters(), weight_decay=5e-4),
+#     dict(params=model.conv2.parameters(), weight_decay=0)
+# ], lr=0.01)  # Only perform weight-decay on first convolution.
 
 
 def train():
