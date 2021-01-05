@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 
 import random
 import numpy as np
+import pickle
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--use_gdc', action='store_true',
@@ -125,7 +126,11 @@ if args.use_gdc:
                                            dim=0), exact=True)
     data = gdc(data)
 
-plot_tsne(data.x, data.y, 'tsne_raw.png')
+
+with open('gold_final_x.pickle', 'rb') as f:
+     gold_final_x = pickle.load(f)
+
+plot_tsne(gold_final_x, data.y, 'tsne_gold.png')
 
 
 
@@ -144,234 +149,234 @@ plot_tsne(data.x, data.y, 'tsne_raw.png')
 
 
 
-run = 0
-seed = 0
-class Net(torch.nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = GCNConv(dataset.num_features, 16, cached=True,
-                             normalize=not args.use_gdc)
-        self.conv2 = GCNConv(16, dataset.num_classes, cached=True,
-                             normalize=not args.use_gdc)
+# run = 0
+# seed = 0
+# class Net(torch.nn.Module):
+#     def __init__(self):
+#         super(Net, self).__init__()
+#         self.conv1 = GCNConv(dataset.num_features, 16, cached=True,
+#                              normalize=not args.use_gdc)
+#         self.conv2 = GCNConv(16, dataset.num_classes, cached=True,
+#                              normalize=not args.use_gdc)
 
-    def forward(self):
-        x, edge_index, edge_weight = data.x, data.edge_index, data.edge_attr
-        x = F.relu(self.conv1(x, edge_index, edge_weight))
-        x = F.dropout(x, training=self.training)
-        final = self.conv2(x, edge_index, edge_weight)
-        return final, F.log_softmax(final, dim=1)
+#     def forward(self):
+#         x, edge_index, edge_weight = data.x, data.edge_index, data.edge_attr
+#         x = F.relu(self.conv1(x, edge_index, edge_weight))
+#         x = F.dropout(x, training=self.training)
+#         final = self.conv2(x, edge_index, edge_weight)
+#         return final, F.log_softmax(final, dim=1)
 
-random.seed(seed)
-torch.manual_seed(seed)
-torch.cuda.manual_seed(seed)
-np.random.seed(seed)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
+# random.seed(seed)
+# torch.manual_seed(seed)
+# torch.cuda.manual_seed(seed)
+# np.random.seed(seed)
+# torch.backends.cudnn.deterministic = True
+# torch.backends.cudnn.benchmark = False
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model, data = Net().to(device), data.to(device)
-optimizer = torch.optim.Adam([
-    dict(params=model.conv1.parameters(), weight_decay=5e-4),
-    dict(params=model.conv2.parameters(), weight_decay=0)
-], lr=0.01)  # Only perform weight-decay on first convolution.
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# model, data = Net().to(device), data.to(device)
+# optimizer = torch.optim.Adam([
+#     dict(params=model.conv1.parameters(), weight_decay=5e-4),
+#     dict(params=model.conv2.parameters(), weight_decay=0)
+# ], lr=0.01)  # Only perform weight-decay on first convolution.
 
-print()
-print('Model', model)
-print('Optimizer', optimizer)
+# print()
+# print('Model', model)
+# print('Optimizer', optimizer)
 
-def train():
-    print()
-    model.train()
-    optimizer.zero_grad()
-    final, logits = model()
+# def train():
+#     print()
+#     model.train()
+#     optimizer.zero_grad()
+#     final, logits = model()
 
-    task_loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
-    # print('Task loss', task_loss)
+#     task_loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
+#     # print('Task loss', task_loss)
 
-    total_loss = task_loss
+#     total_loss = task_loss
 
-    total_loss.backward()
-    optimizer.step()
+#     total_loss.backward()
+#     optimizer.step()
 
-@torch.no_grad()
-def test():
-    model.eval()
-    (final, logits), accs = model(), []
-    for _, mask in data('train_mask', 'val_mask', 'test_mask'):
-        pred = logits[mask].max(1)[1]
-        acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
-        accs.append(acc)
-    return accs
+# @torch.no_grad()
+# def test():
+#     model.eval()
+#     (final, logits), accs = model(), []
+#     for _, mask in data('train_mask', 'val_mask', 'test_mask'):
+#         pred = logits[mask].max(1)[1]
+#         acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
+#         accs.append(acc)
+#     return accs
 
-@torch.no_grad()
-def final_and_yyt_for_supervision():
-    model.eval()
-    final, logits = model()
-    pred = logits.max(1)[1]
-    Y = F.one_hot(pred).float()
-    YYT = torch.matmul(Y, Y.T)
-    return final, YYT
+# @torch.no_grad()
+# def final_and_yyt_for_supervision():
+#     model.eval()
+#     final, logits = model()
+#     pred = logits.max(1)[1]
+#     Y = F.one_hot(pred).float()
+#     YYT = torch.matmul(Y, Y.T)
+#     return final, YYT
 
-print("Start Training", run)
-print('===========================================================================================================')
-best_val_acc = test_acc = 0
-for epoch in range(1, 501):
-    train()
-    train_acc, val_acc, tmp_test_acc = test()
-    if val_acc > best_val_acc:
-        best_val_acc = val_acc
-        test_acc = tmp_test_acc
-    log = 'Epoch: {:03d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-    print(log.format(epoch, train_acc, best_val_acc, test_acc))
-    # input()
-print('Run', run, 'Val. Acc.', best_val_acc, 'Test Acc.', test_acc)
-print("Finished Training", run, '\n')
+# print("Start Training", run)
+# print('===========================================================================================================')
+# best_val_acc = test_acc = 0
+# for epoch in range(1, 501):
+#     train()
+#     train_acc, val_acc, tmp_test_acc = test()
+#     if val_acc > best_val_acc:
+#         best_val_acc = val_acc
+#         test_acc = tmp_test_acc
+#     log = 'Epoch: {:03d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+#     print(log.format(epoch, train_acc, best_val_acc, test_acc))
+#     # input()
+# print('Run', run, 'Val. Acc.', best_val_acc, 'Test Acc.', test_acc)
+# print("Finished Training", run, '\n')
 
-input('Confusion matrix '+str(run))
-prev_final, YYT = final_and_yyt_for_supervision()
+# input('Confusion matrix '+str(run))
+# prev_final, YYT = final_and_yyt_for_supervision()
 
-A = to_dense_adj(data.edge_index)[0]
-A.fill_diagonal_(0)
-print('A', A, A.shape)
-# print('ok?', torch.all(A==1 or A==0))
-compare_topology(A, gold_A, cm_filename='main'+str(run))
+# A = to_dense_adj(data.edge_index)[0]
+# A.fill_diagonal_(0)
+# print('A', A, A.shape)
+# # print('ok?', torch.all(A==1 or A==0))
+# compare_topology(A, gold_A, cm_filename='main'+str(run))
 
-input('Draw tsne '+str(run))
-plot_tsne(prev_final, data.y, 'tsne'+str(run)+'.png')
-
-
+# input('Draw tsne '+str(run))
+# plot_tsne(prev_final, data.y, 'tsne'+str(run)+'.png')
 
 
 
 
 
-val_accs, test_accs = [], []
 
-for run in range(1, 5 + 1):
-    input('Run '+str(run))
-    denser_edge_index = torch.nonzero(YYT == 1, as_tuple=False)
-    denser_edge_index = denser_edge_index.t().contiguous()
 
-    class Net(torch.nn.Module):
-        def __init__(self):
-            super(Net, self).__init__()
-            self.conv1 = GCN3Conv(dataset.num_features, 16, cached=True,
-                                normalize=not args.use_gdc)
-            self.conv2 = GCNConv(16, dataset.num_classes, cached=True,
-                                normalize=not args.use_gdc)
+# val_accs, test_accs = [], []
 
-        def forward(self):
-            x, edge_index, edge_weight = data.x, data.edge_index, data.edge_attr
-            x = F.relu(self.conv1(x, edge_index, edge_index, edge_weight))
-            x = F.dropout(x, training=self.training)
-            final = self.conv2(x, edge_index, edge_weight)
-            return final, F.log_softmax(x, dim=1)
+# for run in range(1, 5 + 1):
+#     input('Run '+str(run))
+#     denser_edge_index = torch.nonzero(YYT == 1, as_tuple=False)
+#     denser_edge_index = denser_edge_index.t().contiguous()
 
-    random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    np.random.seed(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+#     class Net(torch.nn.Module):
+#         def __init__(self):
+#             super(Net, self).__init__()
+#             self.conv1 = GCN3Conv(dataset.num_features, 16, cached=True,
+#                                 normalize=not args.use_gdc)
+#             self.conv2 = GCNConv(16, dataset.num_classes, cached=True,
+#                                 normalize=not args.use_gdc)
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model, data = Net().to(device), data.to(device)
-    optimizer = torch.optim.Adam([
-        dict(params=model.conv1.parameters(), weight_decay=5e-4),
-        dict(params=model.conv2.parameters(), weight_decay=0)
-    ], lr=0.01)  # Only perform weight-decay on first convolution.
+#         def forward(self):
+#             x, edge_index, edge_weight = data.x, data.edge_index, data.edge_attr
+#             x = F.relu(self.conv1(x, edge_index, edge_index, edge_weight))
+#             x = F.dropout(x, training=self.training)
+#             final = self.conv2(x, edge_index, edge_weight)
+#             return final, F.log_softmax(x, dim=1)
 
-    print()
-    print('Model', model)
-    print('Optimizer', optimizer)
+#     random.seed(seed)
+#     torch.manual_seed(seed)
+#     torch.cuda.manual_seed(seed)
+#     np.random.seed(seed)
+#     torch.backends.cudnn.deterministic = True
+#     torch.backends.cudnn.benchmark = False
 
-    def train():
-        print()
-        model.train()
-        optimizer.zero_grad()
-        final, logits = model()
+#     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#     model, data = Net().to(device), data.to(device)
+#     optimizer = torch.optim.Adam([
+#         dict(params=model.conv1.parameters(), weight_decay=5e-4),
+#         dict(params=model.conv2.parameters(), weight_decay=0)
+#     ], lr=0.01)  # Only perform weight-decay on first convolution.
 
-        task_loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
-        print('Task loss', task_loss)
+#     print()
+#     print('Model', model)
+#     print('Optimizer', optimizer)
 
-        link_loss = GCN3Conv.get_link_prediction_loss(model)
-        print('Link loss', link_loss)
+#     def train():
+#         print()
+#         model.train()
+#         optimizer.zero_grad()
+#         final, logits = model()
 
-        redundancy_loss = F.mse_loss(final, prev_final, reduction = 'mean')
-        print('Redundancy loss', redundancy_loss)
+#         task_loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
+#         print('Task loss', task_loss)
 
-        total_loss = task_loss +  1 * link_loss + 1 * redundancy_loss
-        print('Total loss', total_loss)
+#         link_loss = GCN3Conv.get_link_prediction_loss(model)
+#         print('Link loss', link_loss)
 
-        total_loss.backward()
-        optimizer.step()
+#         redundancy_loss = F.mse_loss(final, prev_final, reduction = 'mean')
+#         print('Redundancy loss', redundancy_loss)
 
-    @torch.no_grad()
-    def test():
-        model.eval()
-        (final, logits), accs = model(), []
-        for _, mask in data('train_mask', 'val_mask', 'test_mask'):
-            pred = logits[mask].max(1)[1]
-            acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
-            accs.append(acc)
-        return accs
+#         total_loss = task_loss +  1 * link_loss + 1 * redundancy_loss
+#         print('Total loss', total_loss)
 
-    @torch.no_grad()
-    def final_and_yyt_for_supervision():
-        model.eval()
-        final, logits = model()
-        new_edge = model.conv1.cache["new_edge"]
-        new_edge = new_edge[:,:]
-        print('new_edge', new_edge, new_edge.shape)
-        data.edge_index = torch.cat([data.edge_index, new_edge], dim=1)
-        print('data.num_edges', data.num_edges)
-        pred = logits.max(1)[1]
-        Y = F.one_hot(pred).float()
-        YYT = torch.matmul(Y, Y.T)
-        return final, YYT
+#         total_loss.backward()
+#         optimizer.step()
+
+#     @torch.no_grad()
+#     def test():
+#         model.eval()
+#         (final, logits), accs = model(), []
+#         for _, mask in data('train_mask', 'val_mask', 'test_mask'):
+#             pred = logits[mask].max(1)[1]
+#             acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
+#             accs.append(acc)
+#         return accs
+
+#     @torch.no_grad()
+#     def final_and_yyt_for_supervision():
+#         model.eval()
+#         final, logits = model()
+#         new_edge = model.conv1.cache["new_edge"]
+#         new_edge = new_edge[:,:]
+#         print('new_edge', new_edge, new_edge.shape)
+#         data.edge_index = torch.cat([data.edge_index, new_edge], dim=1)
+#         print('data.num_edges', data.num_edges)
+#         pred = logits.max(1)[1]
+#         Y = F.one_hot(pred).float()
+#         YYT = torch.matmul(Y, Y.T)
+#         return final, YYT
     
-    print("Start Training", run)
-    print('===========================================================================================================')
-    best_val_acc = test_acc = 0
-    for epoch in range(1, 501):
-        train()
-        train_acc, val_acc, tmp_test_acc = test()
-        if val_acc > best_val_acc:
-            best_val_acc = val_acc
-            test_acc = tmp_test_acc
-        log = 'Epoch: {:03d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-        print(log.format(epoch, train_acc, best_val_acc, test_acc))
-    print('Run', run, 'Val. Acc.', best_val_acc, 'Test Acc.', test_acc)
+#     print("Start Training", run)
+#     print('===========================================================================================================')
+#     best_val_acc = test_acc = 0
+#     for epoch in range(1, 501):
+#         train()
+#         train_acc, val_acc, tmp_test_acc = test()
+#         if val_acc > best_val_acc:
+#             best_val_acc = val_acc
+#             test_acc = tmp_test_acc
+#         log = 'Epoch: {:03d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+#         print(log.format(epoch, train_acc, best_val_acc, test_acc))
+#     print('Run', run, 'Val. Acc.', best_val_acc, 'Test Acc.', test_acc)
 
-    val_accs.append(best_val_acc)
-    test_accs.append(test_acc)
+#     val_accs.append(best_val_acc)
+#     test_accs.append(test_acc)
 
-    print("Finished Training", run, '\n')
-    input('Confusion matrix '+str(run))
+#     print("Finished Training", run, '\n')
+#     input('Confusion matrix '+str(run))
 
-    prev_final, YYT = final_and_yyt_for_supervision()
-    A = to_dense_adj(data.edge_index)[0]
-    A[A>1] = 1
-    print('A', A, A.shape)
-    # print('ok?', torch.all(A==1 or A==0))
-    compare_topology(A, gold_A, cm_filename='main'+str(run))
+#     prev_final, YYT = final_and_yyt_for_supervision()
+#     A = to_dense_adj(data.edge_index)[0]
+#     A[A>1] = 1
+#     print('A', A, A.shape)
+#     # print('ok?', torch.all(A==1 or A==0))
+#     compare_topology(A, gold_A, cm_filename='main'+str(run))
 
-    input('Draw tsne '+str(run))
-    plot_tsne(prev_final, data.y, 'tsne'+str(run)+'.png')
+#     input('Draw tsne '+str(run))
+#     plot_tsne(prev_final, data.y, 'tsne'+str(run)+'.png')
 
 
-# Analytics
-print('Task Loss + Link Prediction Loss')
-print('Dataset split is the public fixed split')
+# # Analytics
+# print('Task Loss + Link Prediction Loss')
+# print('Dataset split is the public fixed split')
 
-val_accs = np.array(val_accs)
-mean = np.mean(val_accs)
-std = np.std(val_accs)
+# val_accs = np.array(val_accs)
+# mean = np.mean(val_accs)
+# std = np.std(val_accs)
 
-print('Val. Acc.:', mean, '+/-', str(std))
+# print('Val. Acc.:', mean, '+/-', str(std))
 
-test_accs = np.array(test_accs)
-mean = np.mean(test_accs)
-std = np.std(test_accs)
+# test_accs = np.array(test_accs)
+# mean = np.mean(test_accs)
+# std = np.std(test_accs)
 
-print('Test. Acc.:', mean, '+/-', str(std))
+# print('Test. Acc.:', mean, '+/-', str(std))

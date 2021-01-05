@@ -111,7 +111,7 @@ for i, run in enumerate(range(1)):
         dict(params=model.conv2.parameters(), weight_decay=0)
     ], lr=0.01)  # Only perform weight-decay on first convolution.
     best_val_acc = test_acc = 0
-    for epoch in range(1, 501):
+    for epoch in range(1, 201):
         train()
         train_acc, val_acc, tmp_test_acc = test()
         if val_acc >= best_val_acc:
