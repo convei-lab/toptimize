@@ -177,7 +177,7 @@ def final_and_yyt_for_supervision():
 print("Start Training", run)
 print('===========================================================================================================')
 best_val_acc = test_acc = 0
-for epoch in range(1, 501):
+for epoch in range(1, 201):
     train()
     train_acc, val_acc, tmp_test_acc = test()
     if val_acc > best_val_acc:
@@ -212,8 +212,12 @@ val_accs, test_accs = [], []
 
 for run in range(1, 5 + 1):
 
-    input("\nStart Training "+str(run))
-    
+    input("\nStart Training "+str(run)) 
+
+    import pickle
+    with open('gold_final_x.pickle', 'rb') as f:
+     gold_final_x = pickle.load(f)
+
     # targe_edge_index = torch.nonzero(YYT == 1, as_tuple=False)
     # targe_edge_index = targe_edge_index.t().contiguous()
 
@@ -250,7 +254,9 @@ for run in range(1, 5 + 1):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model, data = Net(data.x, data.edge_index, data.edge_attr).to(device), data.to(device)
     optimizer = torch.optim.Adam([
+        dict(params=model.top1.parameters(), weight_decay=0),
         dict(params=model.conv1.parameters(), weight_decay=5e-4),
+        dict(params=model.top2.parameters(), weight_decay=0),
         dict(params=model.conv2.parameters(), weight_decay=0)
     ], lr=0.01)  # Only perform weight-decay on first convolution.
 
@@ -265,16 +271,16 @@ for run in range(1, 5 + 1):
         final, logits = model()
 
         task_loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
-        print('Task loss', task_loss)
+        # print('Task loss', task_loss)
 
         # link_loss = TOP.get_link_prediction_loss(model)
         # print('Link loss', link_loss)
 
-        redundancy_loss = F.mse_loss(final, prev_final, reduction = 'mean')
-        print('Redundancy loss', redundancy_loss)
+        redundancy_loss = F.mse_loss(final, gold_final_x, reduction = 'mean')
+        # print('Redundancy loss', redundancy_loss)
 
         total_loss = task_loss + 1 * redundancy_loss
-        print('Total loss', total_loss, '\n')
+        # print('Total loss', total_loss, '\n')
 
         total_loss.backward()
         optimizer.step()
@@ -300,7 +306,7 @@ for run in range(1, 5 + 1):
     
     print('===========================================================================================================')
     best_val_acc = test_acc = 0
-    for epoch in range(1, 1501):
+    for epoch in range(1, 601):
         train()
         train_acc, val_acc, tmp_test_acc = test()
         if val_acc > best_val_acc:
