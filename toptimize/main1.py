@@ -212,7 +212,7 @@ input()
 
 val_accs, test_accs = [], []
 
-for run in range(1, 5 + 1):
+for run in range(1, 20 + 1):
     denser_edge_index = torch.nonzero(YYT == 1, as_tuple=False)
     denser_edge_index = denser_edge_index.t().contiguous()
 
@@ -285,7 +285,7 @@ for run in range(1, 5 + 1):
         model.eval()
         final, logits = model()
         new_edge = model.conv1.cache["new_edge"]
-        new_edge = new_edge[:,:100]
+        new_edge = new_edge[:,:]
         print('new_edge', new_edge, new_edge.shape)
         data.edge_index = torch.cat([data.edge_index, new_edge], dim=1)
         print('data.num_edges', data.num_edges)
@@ -297,7 +297,7 @@ for run in range(1, 5 + 1):
     print("Start Training", run)
     print('===========================================================================================================')
     best_val_acc = test_acc = 0
-    for epoch in range(1, 501):
+    for epoch in range(1, 401):
         train()
         train_acc, val_acc, tmp_test_acc = test()
         if val_acc > best_val_acc:
