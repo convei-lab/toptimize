@@ -52,8 +52,8 @@ class Net(torch.nn.Module):
 # edge_index0 = torch.nonzero(A == 1, as_tuple=False)
 # A = A.fill_diagonal_(1)
 
-# gold_Y = F.one_hot(data.y).float()
-# gold_A = torch.matmul(gold_Y, gold_Y.T)
+gold_Y = F.one_hot(data.y).float()
+A_add_TP = torch.matmul(gold_Y, gold_Y.T)
 
 ###################################################################
 
@@ -63,8 +63,8 @@ class Net(torch.nn.Module):
 
 # data.edge_index = edge_index.t().contiguous()
 
-with open('yyt_A.pickle', 'rb') as f:
-     A_add_TP = pickle.load(f)
+# with open('yyt_A.pickle', 'rb') as f:
+#      A_add_TP = pickle.load(f)
 
 edge_index = torch.nonzero(A_add_TP == 1, as_tuple=False)
 data.edge_index = edge_index.t().contiguous()
@@ -85,6 +85,8 @@ def train():
     loss = F.nll_loss(pred, target)
     loss.backward()
     optimizer.step()
+    with open('gold_final_x.pickle', 'wb') as f:
+        pickle.dump(a, f)
     return a, b
 
 
@@ -101,7 +103,7 @@ def test():
 
 best_val_acc = test_acc = 0
 val_accs, test_accs = [], []
-for i, run in enumerate(range(20)):
+for i, run in enumerate(range(1)):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model, data = Net().to(device), data.to(device)
     optimizer = torch.optim.Adam([
@@ -109,7 +111,7 @@ for i, run in enumerate(range(20)):
         dict(params=model.conv2.parameters(), weight_decay=0)
     ], lr=0.01)  # Only perform weight-decay on first convolution.
     best_val_acc = test_acc = 0
-    for epoch in range(1, 201):
+    for epoch in range(1, 501):
         train()
         train_acc, val_acc, tmp_test_acc = test()
         if val_acc >= best_val_acc:

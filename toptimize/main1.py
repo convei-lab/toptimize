@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.datasets import Planetoid
 import torch_geometric.transforms as T
-from torch_geometric.nn import GCNConv, GCN3Conv  # noqa
+from torch_geometric.nn import GCNConv, GCN4Conv  # noqa
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from torch_geometric.utils import to_dense_adj
 import matplotlib.pyplot as plt
@@ -219,7 +219,7 @@ for run in range(1, 5 + 1):
     class Net(torch.nn.Module):
         def __init__(self):
             super(Net, self).__init__()
-            self.conv1 = GCN3Conv(dataset.num_features, 16, cached=True,
+            self.conv1 = GCN4Conv(dataset.num_features, 16, cached=True,
                                 normalize=not args.use_gdc)
             self.conv2 = GCNConv(16, dataset.num_classes, cached=True,
                                 normalize=not args.use_gdc)
@@ -258,7 +258,7 @@ for run in range(1, 5 + 1):
         task_loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
         print('Task loss', task_loss)
 
-        link_loss = GCN3Conv.get_link_prediction_loss(model)
+        link_loss = GCN4Conv.get_link_prediction_loss(model)
         print('Link loss', link_loss)
 
         redundancy_loss = F.mse_loss(final, prev_final, reduction = 'mean')
