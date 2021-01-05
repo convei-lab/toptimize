@@ -124,5 +124,6 @@ for z in range(1, 2 + 1):
     print(f'Previous A: {A} {A.shape}')
     print(f'Did any new changes?: {torch.any(A != new_A)}')
 
-
+    with open('yyt_A.pickle', 'wb') as f:
+        pickle.dump(new_A, f)
     A = new_A
