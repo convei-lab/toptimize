@@ -229,7 +229,7 @@ for run in range(1, 5 + 1):
             x = F.relu(self.conv1(x, edge_index, edge_index, edge_weight))
             x = F.dropout(x, training=self.training)
             final = self.conv2(x, edge_index, edge_weight)
-            return final, F.log_softmax(x, dim=1)
+            return final, F.log_softmax(final, dim=1)
 
     random.seed(seed)
     torch.manual_seed(seed)

@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 
 import random
 import numpy as np
+import pickle
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--use_gdc', action='store_true',
@@ -84,9 +85,9 @@ def compare_topology(pred_A, gold_A, cm_filename='confusion_matrix_display'):
     print(f'False positive: {fp} # 0 -> 1')
     print(f'True negative: {tn} # 0 -> 0')
     print(f'False negative: {fn} # 1 -> 0')
-    print(f'Precision: {round(ppv,2)} # TP/(TP+FP)')
+    print(f'Precision: {ppv} # TP/(TP+FP)')
     print(f'Negative predictive value: {round(npv,2)} # TN/(TN+FN)')
-    print(f'Recall: {round(tpr,2)} # TP/P')
+    print(f'Recall: {tpr} # TP/P')
     print(f'Selectivity: {round(tnr,2)} # TN/N')
     print(f'F1 score: {f1}')
 
@@ -172,7 +173,7 @@ def final_and_yyt_for_supervision():
     pred = logits.max(1)[1]
     Y = F.one_hot(pred).float()
     YYT = torch.matmul(Y, Y.T)
-    return final, YYT
+    return logits, YYT
 
 print("Start Training", run)
 print('===========================================================================================================')
@@ -194,7 +195,7 @@ input()
 prev_final, YYT = final_and_yyt_for_supervision()
 
 A = to_dense_adj(data.edge_index)[0]
-A.fill_diagonal_(0)
+A.fill_diagonal_(1)
 print('A', A, A.shape)
 # print('ok?', torch.all(A==1 or A==0))
 compare_topology(A, gold_A, cm_filename='main'+str(run))
@@ -212,7 +213,7 @@ input()
 
 val_accs, test_accs = [], []
 
-for run in range(1, 20 + 1):
+for run in range(1, 10 + 1):
     denser_edge_index = torch.nonzero(YYT == 1, as_tuple=False)
     denser_edge_index = denser_edge_index.t().contiguous()
 
@@ -229,7 +230,7 @@ for run in range(1, 20 + 1):
             x = F.relu(self.conv1(x, edge_index, edge_index, edge_weight))
             x = F.dropout(x, training=self.training)
             final = self.conv2(x, edge_index, edge_weight)
-            return final, F.log_softmax(x, dim=1)
+            return final, F.log_softmax(final, dim=1)
 
     random.seed(seed)
     torch.manual_seed(seed)
@@ -261,10 +262,12 @@ for run in range(1, 20 + 1):
         link_loss = GCN4Conv.get_link_prediction_loss(model)
         print('Link loss', link_loss)
 
-        redundancy_loss = F.mse_loss(final, prev_final, reduction = 'mean')
+        #redundancy_loss = F.mse_loss(final, prev_final, reduction = 'mean')
+        redundancy_loss = F.kl_div(logits, prev_final, reduction = 'none', log_target = True).mean()
+        #redundancy_loss = torch.distributions.kl.kl_divergence(logits, prev_final).sum(-1)
         print('Redundancy loss', redundancy_loss)
 
-        total_loss = task_loss +  1 * link_loss + 1 * redundancy_loss
+        total_loss = 1 * task_loss +  1 * link_loss + 10 * redundancy_loss
         print('Total loss', total_loss)
 
         total_loss.backward()
@@ -287,17 +290,23 @@ for run in range(1, 20 + 1):
         new_edge = model.conv1.cache["new_edge"]
         new_edge = new_edge[:,:]
         print('new_edge', new_edge, new_edge.shape)
+        new_edge_temp1 = new_edge[0].unsqueeze(0)
+        new_edge_temp2 = new_edge[1].unsqueeze(0)
+        new_edge_homo = torch.cat((new_edge_temp2, new_edge_temp1), dim=0)
+        print('new_edge_homo', new_edge_homo, new_edge_homo.shape)
         data.edge_index = torch.cat([data.edge_index, new_edge], dim=1)
+        print('data.num_edges', data.num_edges)
+        data.edge_index = torch.cat([data.edge_index, new_edge_homo], dim=1)
         print('data.num_edges', data.num_edges)
         pred = logits.max(1)[1]
         Y = F.one_hot(pred).float()
         YYT = torch.matmul(Y, Y.T)
-        return final, YYT
+        return logits, YYT
     
     print("Start Training", run)
     print('===========================================================================================================')
     best_val_acc = test_acc = 0
-    for epoch in range(1, 401):
+    for epoch in range(1, 301):
         train()
         train_acc, val_acc, tmp_test_acc = test()
         if val_acc > best_val_acc:
@@ -316,6 +325,9 @@ for run in range(1, 20 + 1):
     prev_final, YYT = final_and_yyt_for_supervision()
     A = to_dense_adj(data.edge_index)[0]
     A[A>1] = 1
+    with open('newA_' + str(run) + '.pickle', 'wb') as f:
+        pickle.dump(A, f)
+    A.fill_diagonal_(1)
     print('A', A, A.shape)
     # print('ok?', torch.all(A==1 or A==0))
     compare_topology(A, gold_A, cm_filename='main'+str(run))
