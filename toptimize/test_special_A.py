@@ -47,14 +47,51 @@ class Net(torch.nn.Module):
         x = self.conv2(x, edge_index, edge_weight)
         return x, F.log_softmax(x, dim=1)
 
+def compare_topology(pred_A, gold_A, cm_filename='confusion_matrix_display'):
+    flat_pred_A = pred_A.detach().cpu().view(-1)
+    flat_gold_A = gold_A.detach().cpu().view(-1)
+    conf_mat = confusion_matrix(y_true=flat_gold_A, y_pred=flat_pred_A)
+    print('conf_mat', conf_mat, conf_mat.shape)
+    print('conf_mat.ravel()', conf_mat.ravel(), conf_mat.ravel().shape)
+    tn, fp, fn, tp = conf_mat.ravel()
+    ppv = tp/(tp+fp)
+    npv = tn/(tn+fn)
+    tpr = tp/(tp+fn)
+    tnr = tn/(tn+fp)
+    f1 = 2*(ppv*tpr)/(ppv+tpr)
+    print()
+    print('Confusion Matrix')
+    print('============================================================')
+    print(f'Flatten A: {flat_pred_A}')
+    print(f'Shape: {flat_pred_A.shape}')
+    print(f'Number of Positive Prediction: {flat_pred_A.sum()} ({flat_pred_A.sum().true_divide(len(flat_pred_A))})')
+    print(f'Flatten Gold A: {flat_gold_A}')
+    print(f'Shape: {flat_gold_A.shape}')
+    print(f'Number of Positive Class: {flat_gold_A.sum()} ({flat_gold_A.sum().true_divide(len(flat_gold_A))})')
+    print(f'Confusion matrix: {conf_mat}')
+    print(f'Raveled Confusion Matrix: {conf_mat.ravel()}')
+    print(f'True positive: {tp} # 1 -> 1')
+    print(f'False positive: {fp} # 0 -> 1')
+    print(f'True negative: {tn} # 0 -> 0')
+    print(f'False negative: {fn} # 1 -> 0')
+    print(f'Precision: {ppv} # TP/(TP+FP)')
+    print(f'Negative predictive value: {round(npv,2)} # TN/(TN+FN)')
+    print(f'Recall: {tpr} # TP/P')
+    print(f'Selectivity: {round(tnr,2)} # TN/N')
+    print(f'F1 score: {f1}')
+
+    disp = ConfusionMatrixDisplay(confusion_matrix=conf_mat, display_labels=[0,1])
+    disp.plot(values_format='d')
+    plt.savefig(cm_filename+'.png')
+
 # A = to_dense_adj(data.edge_index)[0]
 
 # edge_index0 = torch.nonzero(A == 1, as_tuple=False)
 # A = A.fill_diagonal_(1)
 
-gold_Y = F.one_hot(data.y).float()
-A_add_TP = torch.matmul(gold_Y, gold_Y.T)
-
+# gold_Y = F.one_hot(data.y).float()
+# A_add_TP = torch.matmul(gold_Y, gold_Y.T)
+# print(A_add_TP)
 ###################################################################
 
 # A = A.fill_diagonal_(0) # remove self-loop
@@ -63,11 +100,16 @@ A_add_TP = torch.matmul(gold_Y, gold_Y.T)
 
 # data.edge_index = edge_index.t().contiguous()
 
-# with open('yyt_A.pickle', 'rb') as f:
-#      A_add_TP = pickle.load(f)
+with open('newA_5.pickle', 'rb') as f:
+     A_add_TP = pickle.load(f)
+
+# A_add_TP.fill_diagonal_(1)
+
+# compare_topology(A_add_TP, gold_A, cm_filename='newA_1')
 
 edge_index = torch.nonzero(A_add_TP == 1, as_tuple=False)
 data.edge_index = edge_index.t().contiguous()
+
 
 # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # model, data = Net().to(device), data.to(device)
@@ -85,8 +127,8 @@ def train():
     loss = F.nll_loss(pred, target)
     loss.backward()
     optimizer.step()
-    with open('gold_final_x.pickle', 'wb') as f:
-        pickle.dump(a, f)
+    # with open('gold_final_x.pickle', 'wb') as f:
+    #     pickle.dump(a, f)
     return a, b
 
 
@@ -103,7 +145,7 @@ def test():
 
 best_val_acc = test_acc = 0
 val_accs, test_accs = [], []
-for i, run in enumerate(range(1)):
+for i, run in enumerate(range(5)):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model, data = Net().to(device), data.to(device)
     optimizer = torch.optim.Adam([
@@ -111,13 +153,14 @@ for i, run in enumerate(range(1)):
         dict(params=model.conv2.parameters(), weight_decay=0)
     ], lr=0.01)  # Only perform weight-decay on first convolution.
     best_val_acc = test_acc = 0
-    for epoch in range(1, 201):
+    for epoch in range(1, 200):
         train()
         train_acc, val_acc, tmp_test_acc = test()
-        if val_acc >= best_val_acc:
+        if val_acc > best_val_acc:
             best_val_acc = val_acc
             test_acc = tmp_test_acc
         log = 'Epoch: {:03d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+        print(log.format(epoch, train_acc, val_acc, tmp_test_acc))
     print(log.format(epoch, train_acc, best_val_acc, test_acc))
 
     val_accs.append(best_val_acc)
