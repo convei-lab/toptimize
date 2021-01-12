@@ -341,41 +341,22 @@ val_accs, test_accs = [], []
 for run in range(1, 5 + 1):
 
     input("\nStart Training "+str(run)) 
-
-    # targe_edge_index = torch.nonzero(YYT == 1, as_tuple=False)
-    # targe_edge_index = targe_edge_index.t().contiguous()
+    print('===========================================================================================================')
 
     class Net(torch.nn.Module):
-        def __init__(self, x, edge_index, edge_weight):
+        def __init__(self):
             super(Net, self).__init__()
-            self.top1 = TOP()
             self.conv1 = GCNConv(dataset.num_features, 16, cached=True,
                                 normalize=not args.use_gdc)
-            self.top2 = TOP()
             self.conv2 = GCNConv(16, dataset.num_classes, cached=True,
                                 normalize=not args.use_gdc)
-            self.x = x
-            self.edge_index = edge_index
-            self.edge_weight = edge_weight
 
         def forward(self):
-            x, edge_index, edge_weight = self.x, self.edge_index, self.edge_weight
-            self.top1.forward(x, edge_index, edge_weight)
+            x, edge_index, edge_weight = data.x, data.edge_index, data.edge_attr
             x = F.relu(self.conv1(x, edge_index, edge_weight))
-            self.top2.forward(x, edge_index, edge_weight)
             x = F.dropout(x, training=self.training)
             final = self.conv2(x, edge_index, edge_weight)
             return final, F.log_softmax(final, dim=1)
-
-        def add_new_edge(self):
-            print('Original edge index', self.edge_index, self.edge_index.shape)
-            print('New edge to add (layer 1)', self.top1.cache['new_edge'], self.top1.cache['new_edge'].shape)
-            print('New edge to add (layer 2)', self.top2.cache['new_edge'], self.top2.cache['new_edge'].shape)
-            self.edge_index = torch.cat([self.edge_index, self.top1.cache['new_edge']], dim=-1)
-            self.edge_index = torch.cat([self.edge_index, self.top2.cache['new_edge']], dim=-1)
-            print('Updated edges', self.edge_index, self.edge_index.shape)
-            self.edge_weight = None
-
 
     random.seed(seed)
     torch.manual_seed(seed)
@@ -384,14 +365,11 @@ for run in range(1, 5 + 1):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model, data = Net(data.x, data.edge_index, data.edge_attr).to(device), data.to(device)
+    model = Net().to(device)
     optimizer = torch.optim.Adam([
-        dict(params=model.top1.parameters(), weight_decay=0),
         dict(params=model.conv1.parameters(), weight_decay=5e-4),
-        dict(params=model.top2.parameters(), weight_decay=0),
         dict(params=model.conv2.parameters(), weight_decay=0)
-    ], lr=0.01)  # Only perform weight-decay on first convolution.
+    ], lr=0.01)
 
     print()
     print('Model', model)
@@ -403,17 +381,8 @@ for run in range(1, 5 + 1):
         final, logits = model()
 
         task_loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
-        # print('Task loss', task_loss)
 
-        # link_loss = TOP.get_link_prediction_loss(model)
-        # print('Link loss', link_loss)
-
-        # redundancy_loss = F.mse_loss(final, prev_final, reduction = 'mean')
-        redundancy_loss = F.kl_div(logits, prev_logits, reduction = 'none', log_target = True).mean()
-        # print('Redundancy loss', redundancy_loss)
-
-        total_loss = task_loss + redundancy_loss #+ link_loss
-        # print('Total loss', total_loss, '\n')
+        total_loss = task_loss
 
         total_loss.backward()
         optimizer.step()
@@ -439,7 +408,116 @@ for run in range(1, 5 + 1):
     
     print('===========================================================================================================')
     best_val_acc = test_acc = 0
-    for epoch in range(1, 301):
+    for epoch in range(1, 201):
+        train()
+        train_acc, val_acc, tmp_test_acc = test()
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            test_acc = tmp_test_acc
+        log = 'Epoch: {:03d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+        # print(log.format(epoch, train_acc, best_val_acc, test_acc))
+    print('Run (middle)', run, 'Val. Acc.', best_val_acc, 'Test Acc.', test_acc)
+
+    prev_model = model
+
+
+
+
+
+
+    print('===========================================================================================================')
+    input('Training after link prediciton')
+    class Net(torch.nn.Module):
+        def __init__(self, x, edge_index, edge_weight):
+            super(Net, self).__init__()
+            self.top1 = TOP()
+            self.conv1 = GCNConv(dataset.num_features, 16, cached=True,
+                                normalize=not args.use_gdc)
+            self.top2 = TOP()
+            self.conv2 = GCNConv(16, dataset.num_classes, cached=True,
+                                normalize=not args.use_gdc)
+            self.x = x
+            self.edge_index = edge_index
+            self.edge_weight = edge_weight
+
+        def forward(self):
+            x, edge_index, edge_weight = self.x, self.edge_index, self.edge_weight
+            edge_index, edge_weight = self.top1(x, edge_index, edge_weight)
+            x = F.relu(self.conv1(x, edge_index, edge_weight))
+            edge_index, edge_weight =  self.top2(x, edge_index, edge_weight)
+            x = F.dropout(x, training=self.training)
+            final = self.conv2(x, edge_index, edge_weight)
+            return final, F.log_softmax(final, dim=1)
+
+        def add_new_edge(self):
+            print('Original edge index', self.edge_index, self.edge_index.shape)
+            print('New edge to add (layer 1)', self.top1.cache['new_edge'], self.top1.cache['new_edge'].shape)
+            print('New edge to add (layer 2)', self.top2.cache['new_edge'], self.top2.cache['new_edge'].shape)
+            self.edge_index = torch.cat([self.edge_index, self.top1.cache['new_edge']], dim=-1)
+            self.edge_index = torch.cat([self.edge_index, self.top2.cache['new_edge']], dim=-1)
+            print('Updated edges', self.edge_index, self.edge_index.shape)
+            self.edge_weight = None
+
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    np.random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+    model = Net(data.x, data.edge_index, data.edge_attr).to(device)
+    optimizer = torch.optim.Adam([
+        dict(params=model.top1.parameters(), weight_decay=0),
+        dict(params=model.top2.parameters(), weight_decay=0),
+    ], lr=0.1)
+
+    # Loading the parameter from the previous model
+    model.conv1.load_state_dict(prev_model.conv1.state_dict())
+    model.conv2.load_state_dict(prev_model.conv2.state_dict())
+
+    # freezing W in GCN
+    # model.conv1.weight.requires_grad = False
+    # model.conv1.bias.requires_grad = False
+    # model.conv2.weight.requires_grad = False
+    # model.conv2.bias.requires_grad = False
+
+    # activatie top1, top2
+    model.top1.after_link_prediction = True
+    model.top2.after_link_prediction = True
+
+    print()
+    print('Model', model)
+    print('Optimizer', optimizer)
+    print('Model Parameterers')
+    for name, param in model.named_parameters():
+        print(name, param, 'grad', param.requires_grad)
+    input()
+
+
+    def train():
+        model.train()
+        optimizer.zero_grad()
+        final, logits = model()
+
+        task_loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
+        print('Task loss', task_loss)
+
+        link_loss = TOP.get_link_prediction_loss(model)
+        print('Link loss', link_loss)
+
+        # redundancy_loss = F.mse_loss(final, prev_final, reduction = 'mean')
+        redundancy_loss = F.kl_div(logits, prev_logits, reduction = 'none', log_target = True).mean()
+        print('Redundancy loss', redundancy_loss)
+
+        total_loss = task_loss +  link_loss + 10 * redundancy_loss
+        total_loss = task_loss +  link_loss
+        total_loss = task_loss + 10 * redundancy_loss
+        print('Total loss', total_loss, '\n')
+
+        total_loss.backward()
+        optimizer.step()
+
+    for epoch in range(200, 401):
         train()
         train_acc, val_acc, tmp_test_acc = test()
         if val_acc > best_val_acc:
@@ -463,13 +541,11 @@ for run in range(1, 5 + 1):
     A_temp = A_temp.fill_diagonal_(1)
     A_temp[A_temp>1] = 1
     print('A difference', torch.where(A != A_temp), len(torch.where(A!=A_temp)[0]), len(torch.where(A!=A_temp)[1]))
-
+    compare_topology(A_temp, gold_A, cm_filename='main'+str(run))
 
     input('\nPlot TSNE')
     prev_final, prev_logits, YYT = final_and_yyt_for_supervision()
     plot_tsne(prev_final, data.y, 'tsne_gold.png')
-
-    compare_topology(A_temp, gold_A, cm_filename='main'+str(run))
 
     input('\nPlot topology')
     plot_sorted_topology_with_gold_topology(A_temp, gold_A, 'A_sorted_original_with_gold_'+str(run)+'.png', sorting=True)
@@ -479,8 +555,7 @@ for run in range(1, 5 + 1):
 
 
 # Analytics
-print('Task Loss + Link Prediction Loss')
-print('Dataset split is the public fixed split')
+print('Analytics')
 
 val_accs = np.array(val_accs)
 mean = np.mean(val_accs)
