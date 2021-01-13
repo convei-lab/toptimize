@@ -510,8 +510,8 @@ for run in range(1, 5 + 1):
         print('Redundancy loss', redundancy_loss)
 
         total_loss = task_loss +  link_loss + 10 * redundancy_loss
-        total_loss = task_loss +  link_loss
-        total_loss = task_loss + 10 * redundancy_loss
+        # total_loss = task_loss +  link_loss
+        # total_loss = task_loss + 10 * redundancy_loss
         print('Total loss', total_loss, '\n')
 
         total_loss.backward()
