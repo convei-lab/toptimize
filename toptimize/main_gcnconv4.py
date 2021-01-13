@@ -173,7 +173,7 @@ def final_and_yyt_for_supervision():
     pred = logits.max(1)[1]
     Y = F.one_hot(pred).float()
     YYT = torch.matmul(Y, Y.T)
-    return logits, YYT
+    return logits, YYT, final
 
 print("Start Training", run)
 print('===========================================================================================================')
@@ -192,13 +192,36 @@ print('Run', run, 'Val. Acc.', best_val_acc, 'Test Acc.', test_acc)
 print("Finished Training", run, '\n')
 input()
 
-prev_final, YYT = final_and_yyt_for_supervision()
+def plot_tsne(tsne_x, tsne_y, fig_name, label_names=None):
+    from sklearn.manifold import TSNE
+    from matplotlib import pyplot as plt
+    
+    if tsne_x.is_cuda:
+        tsne_x = tsne_x.detach().cpu()
+    if tsne_y.is_cuda:
+        tsne_y = tsne_y.detach().cpu()
+    tsne = TSNE(n_components=2, random_state=0)
+    X_2d = tsne.fit_transform(tsne_x.cpu())
+
+    target_ids = range(len(tsne_y))
+    if not label_names:
+        label_names = ['a', 'b', 'c', 'd', 'e', 'f', 'g'] 
+
+    plt.figure(figsize=(6, 5))
+    colors = 'r', 'g', 'b', 'c', 'y', 'orange', 'purple'
+    for i, c, label in zip(target_ids, colors, label_names):
+        plt.scatter(X_2d[tsne_y == i, 0], X_2d[tsne_y == i, 1], c=c, s=3, label=label)
+    plt.legend()
+    plt.savefig(fig_name)
+
+prev_final, YYT, final_x = final_and_yyt_for_supervision()
 
 A = to_dense_adj(data.edge_index)[0]
 A.fill_diagonal_(1)
 print('A', A, A.shape)
 # print('ok?', torch.all(A==1 or A==0))
 compare_topology(A, gold_A, cm_filename='main'+str(run))
+plot_tsne(final_x, data.y, 'tsne_0.png')
 input()
 
 
@@ -262,7 +285,7 @@ for run in range(1, 10 + 1):
         link_loss = GCN4Conv.get_link_prediction_loss(model)
         print('Link loss', link_loss)
 
-        #redundancy_loss = F.mse_loss(final, prev_final, reduction = 'mean')
+        # redundancy_loss = F.mse_loss(final, prev_final, reduction = 'mean')
         redundancy_loss = F.kl_div(logits, prev_final, reduction = 'none', log_target = True).mean()
         #redundancy_loss = torch.distributions.kl.kl_divergence(logits, prev_final).sum(-1)
         print('Redundancy loss', redundancy_loss)
@@ -301,7 +324,7 @@ for run in range(1, 10 + 1):
         pred = logits.max(1)[1]
         Y = F.one_hot(pred).float()
         YYT = torch.matmul(Y, Y.T)
-        return logits, YYT
+        return logits, YYT, final
     
     print("Start Training", run)
     print('===========================================================================================================')
@@ -322,15 +345,16 @@ for run in range(1, 10 + 1):
 
     print("Finished Training", run, '\n')
 
-    prev_final, YYT = final_and_yyt_for_supervision()
+    prev_final, YYT, final_x = final_and_yyt_for_supervision()
     A = to_dense_adj(data.edge_index)[0]
     A[A>1] = 1
-    with open('newA_' + str(run) + '.pickle', 'wb') as f:
-        pickle.dump(A, f)
+    # with open('newA_' + str(run) + '.pickle', 'wb') as f:
+    #     pickle.dump(A, f)
     A.fill_diagonal_(1)
     print('A', A, A.shape)
     # print('ok?', torch.all(A==1 or A==0))
     compare_topology(A, gold_A, cm_filename='main'+str(run))
+    plot_tsne(final_x, data.y, 'tsne_'+str(run)+'.png')
     input()
 
 # Analytics
