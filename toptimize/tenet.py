@@ -6,14 +6,14 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.datasets import Planetoid
 import torch_geometric.transforms as T
-from torch_geometric.nn import GCNConv, TOP  # noqa
+from torch_geometric.nn import GCNConv, TENET, GCN4Conv  # noqa
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from torch_geometric.utils import to_dense_adj
 import matplotlib.pyplot as plt
 
 import random
 import numpy as np
-from utils import *
+from utils import print_dataset_stat, print_label_relation, compare_topology, plot_tsne, plot_topology, plot_sorted_topology_with_gold_topology
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--use_gdc', action='store_true',
@@ -26,10 +26,8 @@ dataset = Planetoid(path, dataset, transform=T.NormalizeFeatures())
 data = dataset[0]
 
 print_dataset_stat(dataset, data)
-input()
 
 print_label_relation(data)
-input()
 
 if args.use_gdc:
     gdc = T.GDC(self_loop_weight=1, normalization_in='sym',
@@ -70,27 +68,20 @@ optimizer = torch.optim.Adam([
     dict(params=model.conv2.parameters(), weight_decay=0)
 ], lr=0.01)  # Only perform weight-decay on first convolution.
 
-print()
-print('Model', model)
-print('Optimizer', optimizer)
+input('Model Loading'+str('='*40))
+print('Model\n', model, '\nOptimizer\n', optimizer)
 
 def train():
     model.train()
     optimizer.zero_grad()
-    final, logits = model()
-
-    task_loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
-    # print('Task loss', task_loss)
-
-    total_loss = task_loss
-
-    total_loss.backward()
+    x, logits = model()
+    F.nll_loss(logits[data.train_mask], data.y[data.train_mask]).backward()
     optimizer.step()
 
 @torch.no_grad()
 def test():
     model.eval()
-    (final, logits), accs = model(), []
+    (x, logits), accs = model(), []
     for _, mask in data('train_mask', 'val_mask', 'test_mask'):
         pred = logits[mask].max(1)[1]
         acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
@@ -98,18 +89,17 @@ def test():
     return accs
 
 @torch.no_grad()
-def final_and_yyt_for_supervision():
+def distillation():
     model.eval()
-    final, logits = model()
+    x, logits = model()
     pred = logits.max(1)[1]
     Y = F.one_hot(pred).float()
     YYT = torch.matmul(Y, Y.T)
-    return final, logits, YYT
+    return x, logits, YYT
 
-input("Start Training "+str(run))
-print('===========================================================================================================')
+input("Start Training "+str(run)+str('='*40))
 best_val_acc = test_acc = 0
-for epoch in range(1, 201):
+for epoch in range(0, 201):
     train()
     train_acc, val_acc, tmp_test_acc = test()
     if val_acc > best_val_acc:
@@ -117,22 +107,14 @@ for epoch in range(1, 201):
         test_acc = tmp_test_acc
     log = 'Epoch: {:03d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
     # print(log.format(epoch, train_acc, best_val_acc, test_acc))
-    # input()
 print('Run', run, 'Val. Acc.', best_val_acc, 'Test Acc.', test_acc)
+input("Finished Training "+str(run)+str('='*40))
 
-print("Finished Training", run, '\n')
 
-input('Confusion Matrix '+str(run))
-prev_final, prev_logits, YYT = final_and_yyt_for_supervision()
-
+prev_x, prev_logits, YYT = distillation()
 pred_A = to_dense_adj(data.edge_index)[0]
 pred_A.fill_diagonal_(1)
-compare_topology(pred_A, data, cm_filename='main'+str(run))
 
-input('\nPlot TSNE')
-plot_tsne(prev_final, data.y, 'tsne_gold.png')
-
-input('\nPlot Topology')
 A = to_dense_adj(data.edge_index)[0]
 A.fill_diagonal_(1)
 gold_Y = F.one_hot(data.y).float()
@@ -141,165 +123,49 @@ sorted_gold_Y, sorted_Y_indices = torch.sort(data.y, descending=False)
 sorted_gold_Y = F.one_hot(sorted_gold_Y).float()
 sorted_gold_A = torch.matmul(sorted_gold_Y, sorted_gold_Y.T)
 
-plot_topology(A, data, 'A_original.png')
-plot_topology(gold_A, data, 'A_gold.png')
-plot_topology(sorted_gold_A, data, 'A_sorted_gold.png')
-plot_topology(A, data, 'A_sorted_original.png', sorting=True)
-plot_topology(gold_A, data, 'A_sorted_gold2.png', sorting=True)
-plot_sorted_topology_with_gold_topology(A, gold_A, data, 'A_original_with_gold_'+str(run)+'.png', sorting=False)
-plot_sorted_topology_with_gold_topology(A, gold_A, data, 'A_sorted_original_with_gold_'+str(run)+'.png', sorting=True)
+# compare_topology(pred_A, data, cm_filename='main'+str(run))
+# plot_tsne(prev_x, data.y, 'tsne_0.png')
+# plot_topology(A, data, 'A_original.png')
+# plot_topology(gold_A, data, 'A_gold.png')
+# plot_topology(sorted_gold_A, data, 'A_sorted_gold.png')
+# plot_topology(A, data, 'A_sorted_original.png', sorting=True)
+# plot_topology(gold_A, data, 'A_sorted_gold2.png', sorting=True)
+# plot_sorted_topology_with_gold_topology(A, gold_A, data, 'A_original_with_gold_'+str(run)+'.png', sorting=False)
+# plot_sorted_topology_with_gold_topology(A, gold_A, data, 'A_sorted_original_with_gold_'+str(run)+'.png', sorting=True)
 
 
 
 
 val_accs, test_accs = [], []
-
 for run in range(1, 5 + 1):
-
-    input("\nStart Training "+str(run)) 
-    print('===========================================================================================================')
-
     class Net(torch.nn.Module):
         def __init__(self):
             super(Net, self).__init__()
             self.conv1 = GCNConv(dataset.num_features, 16, cached=True,
                                 normalize=not args.use_gdc)
+            self.tenet1 = TENET()
             self.conv2 = GCNConv(16, dataset.num_classes, cached=True,
                                 normalize=not args.use_gdc)
+            # self.tenet2 = TENET()
 
         def forward(self):
             x, edge_index, edge_weight = data.x, data.edge_index, data.edge_attr
             x = F.relu(self.conv1(x, edge_index, edge_weight))
+            edge_score_1, edge_label_1 = self.tenet1(x, edge_index, edge_weight)
             x = F.dropout(x, training=self.training)
-            final = self.conv2(x, edge_index, edge_weight)
-            return final, F.log_softmax(final, dim=1)
+            x = self.conv2(x, edge_index, edge_weight)
+            # edge_score_2, edge_label_2 = self.tenet2(final, edge_index, edge_weight)
+            return x, F.log_softmax(x, dim=1)
 
-    random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    np.random.seed(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-
-    model = Net().to(device)
+    model, data = Net().to(device), data.to(device)
     optimizer = torch.optim.Adam([
         dict(params=model.conv1.parameters(), weight_decay=5e-4),
-        dict(params=model.conv2.parameters(), weight_decay=0)
+        dict(params=model.conv2.parameters(), weight_decay=0),
+        dict(params=model.tenet1.parameters(), weight_decay=5e-4),
+        # dict(params=model.tenet2.parameters(), weight_decay=5e-4),
     ], lr=0.01)
-
-    print()
-    print('Model', model)
-    print('Optimizer', optimizer)
-
-    def train():
-        model.train()
-        optimizer.zero_grad()
-        final, logits = model()
-
-        task_loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
-
-        total_loss = task_loss
-
-        total_loss.backward()
-        optimizer.step()
-
-    @torch.no_grad()
-    def test():
-        model.eval()
-        (final, logits), accs = model(), []
-        for _, mask in data('train_mask', 'val_mask', 'test_mask'):
-            pred = logits[mask].max(1)[1]
-            acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
-            accs.append(acc)
-        return accs
-
-    @torch.no_grad()
-    def final_and_yyt_for_supervision():
-        model.eval()
-        final, logits = model()
-        pred = logits.max(1)[1]
-        Y = F.one_hot(pred).float()
-        YYT = torch.matmul(Y, Y.T)
-        return final, logits, YYT
-    
-    print('===========================================================================================================')
-    best_val_acc = test_acc = 0
-    for epoch in range(1, 201):
-        train()
-        train_acc, val_acc, tmp_test_acc = test()
-        if val_acc > best_val_acc:
-            best_val_acc = val_acc
-            test_acc = tmp_test_acc
-        log = 'Epoch: {:03d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-        # print(log.format(epoch, train_acc, best_val_acc, test_acc))
-    print('Run (middle)', run, 'Val. Acc.', best_val_acc, 'Test Acc.', test_acc)
-
-    prev_model = model
-
-
-
-
-
-
-    print('===========================================================================================================')
-    input('Training after link prediciton')
-    class Net(torch.nn.Module):
-        def __init__(self, x, edge_index, edge_weight):
-            super(Net, self).__init__()
-            self.top1 = TOP()
-            self.conv1 = GCNConv(dataset.num_features, 16, cached=True,
-                                normalize=not args.use_gdc)
-            self.top2 = TOP()
-            self.conv2 = GCNConv(16, dataset.num_classes, cached=True,
-                                normalize=not args.use_gdc)
-            self.x = x
-            self.edge_index = edge_index
-            self.edge_weight = edge_weight
-
-        def forward(self):
-            x, edge_index, edge_weight = self.x, self.edge_index, self.edge_weight
-            x = F.relu(self.conv1(x, edge_index, edge_weight))
-            edge_index, edge_weight = self.top1(x, edge_index, edge_weight)
-            x = F.dropout(x, training=self.training)
-            final = self.conv2(x, edge_index, edge_weight)
-            edge_index, edge_weight =  self.top2(x, edge_index, edge_weight)
-            return final, F.log_softmax(final, dim=1)
-
-        def add_new_edge(self):
-            print('Original edge index', self.edge_index, self.edge_index.shape)
-            print('New edge to add (layer 1)', self.top1.cache['new_edge'], self.top1.cache['new_edge'].shape)
-            print('New edge to add (layer 2)', self.top2.cache['new_edge'], self.top2.cache['new_edge'].shape)
-            self.edge_index = torch.cat([self.edge_index, self.top1.cache['new_edge']], dim=-1)
-            self.edge_index = torch.cat([self.edge_index, self.top2.cache['new_edge']], dim=-1)
-            print('Updated edges', self.edge_index, self.edge_index.shape)
-            self.edge_weight = None
-
-    random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    np.random.seed(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-
-    model = Net(data.x, data.edge_index, data.edge_attr).to(device)
-    optimizer = torch.optim.Adam([
-        dict(params=model.top1.parameters(), weight_decay=0),
-        dict(params=model.top2.parameters(), weight_decay=0),
-    ], lr=0.1)
-
-    # Loading the parameter from the previous model
-    model.conv1.load_state_dict(prev_model.conv1.state_dict())
-    model.conv2.load_state_dict(prev_model.conv2.state_dict())
-
-    # freezing W in GCN
-    # model.conv1.weight.requires_grad = False
-    # model.conv1.bias.requires_grad = False
-    # model.conv2.weight.requires_grad = False
-    # model.conv2.bias.requires_grad = False
-
-    print()
-    print('Model', model)
-    print('Optimizer', optimizer)
+    input('Model Loading'+str('='*40))
+    print('Model\n', model, '\nOptimizer\n', optimizer)
     print('Model Parameterers')
     for name, param in model.named_parameters():
         print(name, param, 'grad', param.requires_grad)
@@ -307,66 +173,69 @@ for run in range(1, 5 + 1):
     def train():
         model.train()
         optimizer.zero_grad()
-        final, logits = model()
+        x, logits = model()
 
         task_loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
-        print('Task loss', task_loss)
+        link_loss = TENET.get_link_prediction_loss(model)
+        dist_loss = F.kl_div(logits, prev_logits, reduction = 'none', log_target = True).mean()
+        total_loss = task_loss +  link_loss + 10 * dist_loss
 
-        link_loss = TOP.get_link_prediction_loss(model)
-        print('Link loss', link_loss)
-
-        # redundancy_loss = F.mse_loss(final, prev_final, reduction = 'mean')
-        redundancy_loss = F.kl_div(logits, prev_logits, reduction = 'none', log_target = True).mean()
-        print('Redundancy loss', redundancy_loss)
-
-        total_loss = task_loss +  link_loss + 10 * redundancy_loss
-        # total_loss = task_loss +  link_loss
-        # total_loss = task_loss + 10 * redundancy_loss
-        print('Total loss', total_loss, '\n')
+        # print('Task loss', task_loss)
+        # print('Link loss', link_loss)
+        # print('Distillation loss', dist_loss)
+        # print('Total loss', total_loss, '\n')
 
         total_loss.backward()
         optimizer.step()
 
-    print('===========================================================================================================')
-    input('Continue training '+str(run))
+    @torch.no_grad()
+    def distillation():
+        model.eval()
+        x, logits = model()
+        new_edge = model.tenet1.cache["new_edge"]
+        new_edge = new_edge[:,:]
+        print('new_edge', new_edge, new_edge.shape)
+        new_edge_temp1 = new_edge[0].unsqueeze(0)
+        new_edge_temp2 = new_edge[1].unsqueeze(0)
+        new_edge_homo = torch.cat((new_edge_temp2, new_edge_temp1), dim=0)
+        print('new_edge_homo', new_edge_homo, new_edge_homo.shape)
+        data.edge_index = torch.cat([data.edge_index, new_edge], dim=1)
+        print('data.num_edges', data.num_edges)
+        data.edge_index = torch.cat([data.edge_index, new_edge_homo], dim=1)
+        print('data.num_edges', data.num_edges)
+        pred = logits.max(1)[1]
+        Y = F.one_hot(pred).float()
+        YYT = torch.matmul(Y, Y.T)
+        return x, logits, YYT
 
+    input("\nStart Training "+str(run)+str('='*40)) 
     best_val_acc = test_acc = 0
-    for epoch in range(200, 401):
+    for epoch in range(0, 301):
         train()
         train_acc, val_acc, tmp_test_acc = test()
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             test_acc = tmp_test_acc
         log = 'Epoch: {:03d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-        # print(log.format(epoch, train_acc, best_val_acc, test_acc))
+        print(log.format(epoch, train_acc, best_val_acc, test_acc))
     print('Run', run, 'Val. Acc.', best_val_acc, 'Test Acc.', test_acc)
+    input("Finished Training "+str(run)+str('='*40))
 
     val_accs.append(best_val_acc)
     test_accs.append(test_acc)
 
-    print("Finished Training", run)
+    prev_x, prev_logits, YYT = distillation()
+    # TODO here make new topology based on the infer
 
-    input('\nAdd new edge')
-    model.add_new_edge()
-    print('model.edge_index', model.edge_index, model.edge_index.shape)
-
-    input('\nConfusion matrix ' + str(run))
-    A_temp = to_dense_adj(model.edge_index)[0]
-    A_temp = A_temp.fill_diagonal_(1)
+    A_temp = to_dense_adj(data.edge_index)[0]
+    A_temp.fill_diagonal_(1)
     A_temp[A_temp>1] = 1
     print('A difference', torch.where(A != A_temp), len(torch.where(A!=A_temp)[0]), len(torch.where(A!=A_temp)[1]))
-    compare_topology(A_temp, data, cm_filename='main'+str(run))
-
-    input('\nPlot TSNE')
-    prev_final, prev_logits, YYT = final_and_yyt_for_supervision()
-    plot_tsne(prev_final, data.y, 'tsne_gold.png')
-
-    input('\nPlot topology')
-    plot_sorted_topology_with_gold_topology(A_temp, gold_A, data, 'A_sorted_original_with_gold_'+str(run)+'.png', sorting=True)
     A = A_temp
 
-    data.edge_index = model.edge_index
-
+    compare_topology(A_temp, data, cm_filename='main'+str(run))
+    plot_tsne(prev_x, data.y, 'tsne_gold.png')
+    plot_sorted_topology_with_gold_topology(A_temp, gold_A, data, 'A_sorted_original_with_gold_'+str(run)+'.png', sorting=True)
 
 # Analytics
 print('Analytics')
@@ -374,11 +243,12 @@ print('Analytics')
 val_accs = np.array(val_accs)
 mean = np.mean(val_accs)
 std = np.std(val_accs)
-
-print('Val. Acc.:', mean, '+/-', str(std))
+print('Val. Acc.:', round(mean,4), '+/-', str(round(std,4)))
 
 test_accs = np.array(test_accs)
 mean = np.mean(test_accs)
 std = np.std(test_accs)
+print('Test. Acc.:', round(mean,4), '+/-', str(round(std,4)))
 
-print('Test. Acc.:', mean, '+/-', str(std))
+print('val_accs', val_accs)
+print('test_accs', test_accs)
