@@ -19,7 +19,7 @@ parser.add_argument('--use_gdc', action='store_true',
                     help='Use GDC preprocessing.')
 args = parser.parse_args()
 
-dataset = 'PubMed'
+dataset = 'Cora'
 path = osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data', dataset)
 dataset = Planetoid(path, dataset, transform=T.NormalizeFeatures())
 data = dataset[0]
@@ -104,14 +104,14 @@ if args.use_gdc:
                                            dim=0), exact=True)
     data = gdc(data)
 
-print('data.edge_index', data.edge_index, data.edge_index.shape)
-mask = torch.randint(0, 3 + 1, (1, data.edge_index.size(1)))[0]
-print('mask', mask, mask.shape)
-mask = mask >= 3
-print('mask', mask, mask.shape)
-data.edge_index = data.edge_index[:, mask]
-print('data.edge_index', data.edge_index, data.edge_index.shape)
-input()
+# print('data.edge_index', data.edge_index, data.edge_index.shape)
+# mask = torch.randint(0, 3 + 1, (1, data.edge_index.size(1)))[0]
+# print('mask', mask, mask.shape)
+# mask = mask >= 3
+# print('mask', mask, mask.shape)
+# data.edge_index = data.edge_index[:, mask]
+# print('data.edge_index', data.edge_index, data.edge_index.shape)
+# input()
 
 
 run = 0
@@ -242,7 +242,7 @@ input()
 
 val_accs, test_accs = [], []
 
-for run in range(1, 0 + 1):
+for run in range(1, 8 + 1):
     # denser_edge_index = torch.nonzero(YYT == 1, as_tuple=False)
     # denser_edge_index = denser_edge_index.t().contiguous()
 
@@ -261,12 +261,12 @@ for run in range(1, 0 + 1):
             final = self.conv2(x, edge_index, edge_weight)
             return final, F.log_softmax(final, dim=1)
 
-    random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    np.random.seed(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    # random.seed(seed)
+    # torch.manual_seed(seed)
+    # torch.cuda.manual_seed(seed)
+    # np.random.seed(seed)
+    # torch.backends.cudnn.deterministic = True
+    # torch.backends.cudnn.benchmark = False
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model, data = Net().to(device), data.to(device)
@@ -358,7 +358,7 @@ for run in range(1, 0 + 1):
     A.fill_diagonal_(1)
     print('A', A, A.shape)
     # print('ok?', torch.all(A==1 or A==0))
-    compare_topology(A, gold_A, cm_filename='main'+str(run))
+    # compare_topology(A, gold_A, cm_filename='main'+str(run))
     # plot_tsne(final_x, data.y, 'tsne_'+str(run)+'.png')
     input()
 
@@ -372,8 +372,12 @@ std = np.std(val_accs)
 
 print('Val. Acc.:', mean, '+/-', str(std))
 
+
 test_accs = np.array(test_accs)
 mean = np.mean(test_accs)
 std = np.std(test_accs)
 
 print('Test. Acc.:', mean, '+/-', str(std))
+
+print('Vals Accs: ', val_accs)
+print('Test Accs', test_accs)
