@@ -233,16 +233,9 @@ input()
 
 
 
-
-
-
-
-
-
-
 val_accs, test_accs = [], []
 
-for run in range(1, 8 + 1):
+for run in range(1, 5 + 1):
     # denser_edge_index = torch.nonzero(YYT == 1, as_tuple=False)
     # denser_edge_index = denser_edge_index.t().contiguous()
 
