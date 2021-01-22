@@ -442,11 +442,11 @@ for run in range(1, 5 + 1):
 
         def forward(self):
             x, edge_index, edge_weight = self.x, self.edge_index, self.edge_weight
-            edge_index, edge_weight = self.top1(x, edge_index, edge_weight)
             x = F.relu(self.conv1(x, edge_index, edge_weight))
-            edge_index, edge_weight =  self.top2(x, edge_index, edge_weight)
+            edge_index, edge_weight = self.top1(x, edge_index, edge_weight)
             x = F.dropout(x, training=self.training)
             final = self.conv2(x, edge_index, edge_weight)
+            edge_index, edge_weight =  self.top2(x, edge_index, edge_weight)
             return final, F.log_softmax(final, dim=1)
 
         def add_new_edge(self):
@@ -481,18 +481,12 @@ for run in range(1, 5 + 1):
     # model.conv2.weight.requires_grad = False
     # model.conv2.bias.requires_grad = False
 
-    # activatie top1, top2
-    model.top1.after_link_prediction = True
-    model.top2.after_link_prediction = True
-
     print()
     print('Model', model)
     print('Optimizer', optimizer)
     print('Model Parameterers')
     for name, param in model.named_parameters():
         print(name, param, 'grad', param.requires_grad)
-    input()
-
 
     def train():
         model.train()
@@ -510,13 +504,17 @@ for run in range(1, 5 + 1):
         print('Redundancy loss', redundancy_loss)
 
         total_loss = task_loss +  link_loss + 10 * redundancy_loss
-        total_loss = task_loss +  link_loss
-        total_loss = task_loss + 10 * redundancy_loss
+        # total_loss = task_loss +  link_loss
+        # total_loss = task_loss + 10 * redundancy_loss
         print('Total loss', total_loss, '\n')
 
         total_loss.backward()
         optimizer.step()
 
+    print('===========================================================================================================')
+    input('Continue training '+str(run))
+
+    best_val_acc = test_acc = 0
     for epoch in range(200, 401):
         train()
         train_acc, val_acc, tmp_test_acc = test()

@@ -19,7 +19,7 @@ parser.add_argument('--use_gdc', action='store_true',
                     help='Use GDC preprocessing.')
 args = parser.parse_args()
 
-dataset = 'PubMed'
+dataset = 'Cora'
 path = osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data', dataset)
 dataset = Planetoid(path, dataset, transform=T.NormalizeFeatures())
 data = dataset[0]
@@ -104,14 +104,14 @@ if args.use_gdc:
                                            dim=0), exact=True)
     data = gdc(data)
 
-print('data.edge_index', data.edge_index, data.edge_index.shape)
-mask = torch.randint(0, 3 + 1, (1, data.edge_index.size(1)))[0]
-print('mask', mask, mask.shape)
-mask = mask >= 3
-print('mask', mask, mask.shape)
-data.edge_index = data.edge_index[:, mask]
-print('data.edge_index', data.edge_index, data.edge_index.shape)
-input()
+# print('data.edge_index', data.edge_index, data.edge_index.shape)
+# mask = torch.randint(0, 3 + 1, (1, data.edge_index.size(1)))[0]
+# print('mask', mask, mask.shape)
+# mask = mask >= 3
+# print('mask', mask, mask.shape)
+# data.edge_index = data.edge_index[:, mask]
+# print('data.edge_index', data.edge_index, data.edge_index.shape)
+# input()
 
 
 run = 0
@@ -226,7 +226,7 @@ A = to_dense_adj(data.edge_index)[0]
 A.fill_diagonal_(1)
 print('A', A, A.shape)
 # print('ok?', torch.all(A==1 or A==0))
-# compare_topology(A, gold_A, cm_filename='main'+str(run))
+compare_topology(A, gold_A, cm_filename='main'+str(run))
 # plot_tsne(final_x, data.y, 'tsne_0.png')
 input()
 
@@ -235,17 +235,19 @@ input()
 
 
 
-
-
-
-
+B, C = data.edge_index.clone(), data.edge_index.clone()
 
 val_accs, test_accs = [], []
 
-for run in range(1, 0 + 1):
+for run in range(0, 20):
     # denser_edge_index = torch.nonzero(YYT == 1, as_tuple=False)
     # denser_edge_index = denser_edge_index.t().contiguous()
 
+    if run % 2 == 0:
+        data.edge_index = B
+    else:
+        data.edge_index = C
+    
     class Net(torch.nn.Module):
         def __init__(self):
             super(Net, self).__init__()
@@ -313,6 +315,7 @@ for run in range(1, 0 + 1):
 
     @torch.no_grad()
     def final_and_yyt_for_supervision():
+        global B, C
         model.eval()
         final, logits = model()
         new_edge = model.conv1.cache["new_edge"]
@@ -322,10 +325,16 @@ for run in range(1, 0 + 1):
         new_edge_temp2 = new_edge[1].unsqueeze(0)
         new_edge_homo = torch.cat((new_edge_temp2, new_edge_temp1), dim=0)
         print('new_edge_homo', new_edge_homo, new_edge_homo.shape)
-        data.edge_index = torch.cat([data.edge_index, new_edge], dim=1)
         print('data.num_edges', data.num_edges)
-        data.edge_index = torch.cat([data.edge_index, new_edge_homo], dim=1)
-        print('data.num_edges', data.num_edges)
+        if run % 2 == 0:
+            print('B')
+            B = torch.cat([B, new_edge], dim=1)
+            B = torch.cat([B, new_edge_homo], dim=1)
+        else:
+            print('C')
+            C = torch.cat([C, new_edge], dim=1)
+            C = torch.cat([C, new_edge_homo], dim=1)
+        print('data.num_edges', data.num_edges + new_edge_homo.size(1) + new_edge.size(1))
         pred = logits.max(1)[1]
         Y = F.one_hot(pred).float()
         YYT = torch.matmul(Y, Y.T)
