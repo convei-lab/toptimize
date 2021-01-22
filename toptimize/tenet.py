@@ -6,9 +6,10 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.datasets import Planetoid
 import torch_geometric.transforms as T
-from torch_geometric.nn import GCNConv, TENET, GCN4Conv  # noqa
+from torch_geometric.nn import GCNConv, TENET, GCN4Conv, dense  # noqa
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from torch_geometric.utils import to_dense_adj
+from torch_geometric.utils.sparse import dense_to_sparse
 import matplotlib.pyplot as plt
 
 import random
@@ -123,7 +124,7 @@ sorted_gold_Y, sorted_Y_indices = torch.sort(data.y, descending=False)
 sorted_gold_Y = F.one_hot(sorted_gold_Y).float()
 sorted_gold_A = torch.matmul(sorted_gold_Y, sorted_gold_Y.T)
 
-# compare_topology(pred_A, data, cm_filename='main'+str(run))
+compare_topology(pred_A, data, cm_filename='main'+str(run))
 # plot_tsne(prev_x, data.y, 'tsne_0.png')
 # plot_topology(A, data, 'A_original.png')
 # plot_topology(gold_A, data, 'A_gold.png')
@@ -138,6 +139,19 @@ sorted_gold_A = torch.matmul(sorted_gold_Y, sorted_gold_Y.T)
 
 val_accs, test_accs = [], []
 for run in range(1, 5 + 1):
+    temp = to_dense_adj(data.edge_index)[0]
+    print('temp', temp, temp.shape)
+    temp.fill_diagonal_(0)
+    temp = torch.matmul(temp, temp)
+    temp[temp>1]=1
+
+    squared_edge_index, squared_edge_weight = dense_to_sparse(temp)
+    print('squared_edge_index', squared_edge_index, squared_edge_index.shape)
+    input()
+
+    temp = torch.ones_like(temp)
+    all_edge_index, all_edge_weight = dense_to_sparse(temp)
+
     class Net(torch.nn.Module):
         def __init__(self):
             super(Net, self).__init__()
@@ -146,7 +160,7 @@ for run in range(1, 5 + 1):
             self.tenet1 = TENET()
             self.conv2 = GCNConv(16, dataset.num_classes, cached=True,
                                 normalize=not args.use_gdc)
-            # self.tenet2 = TENET()
+            self.tenet2 = TENET()
 
         def forward(self):
             x, edge_index, edge_weight = data.x, data.edge_index, data.edge_attr
@@ -154,17 +168,26 @@ for run in range(1, 5 + 1):
             edge_score_1, edge_label_1 = self.tenet1(x, edge_index, edge_weight)
             x = F.dropout(x, training=self.training)
             x = self.conv2(x, edge_index, edge_weight)
-            # edge_score_2, edge_label_2 = self.tenet2(final, edge_index, edge_weight)
+            edge_score_2, edge_label_2 = self.tenet2(x, squared_edge_index, squared_edge_weight)
             return x, F.log_softmax(x, dim=1)
 
-    model, data = Net().to(device), data.to(device)
+        def infer(self):
+            x, edge_index, edge_weight = data.x, data.edge_index, data.edge_attr
+            x = F.relu(self.conv1(x, edge_index, edge_weight))
+            edge_score_1 = self.tenet1.get_edge_score(x, all_edge_index)
+            x = self.conv2(x, edge_index, edge_weight)
+            edge_score_2 = self.tenet2.get_edge_score(x, all_edge_index)
+            return edge_score_1, edge_score_2
+
+
+    input('Model Loading'+str('='*40))
+    model = Net().to(device)
     optimizer = torch.optim.Adam([
         dict(params=model.conv1.parameters(), weight_decay=5e-4),
         dict(params=model.conv2.parameters(), weight_decay=0),
         dict(params=model.tenet1.parameters(), weight_decay=5e-4),
-        # dict(params=model.tenet2.parameters(), weight_decay=5e-4),
+        dict(params=model.tenet2.parameters(), weight_decay=5e-4),
     ], lr=0.01)
-    input('Model Loading'+str('='*40))
     print('Model\n', model, '\nOptimizer\n', optimizer)
     print('Model Parameterers')
     for name, param in model.named_parameters():
@@ -192,17 +215,22 @@ for run in range(1, 5 + 1):
     def distillation():
         model.eval()
         x, logits = model()
-        new_edge = model.tenet1.cache["new_edge"]
-        new_edge = new_edge[:,:]
-        print('new_edge', new_edge, new_edge.shape)
-        new_edge_temp1 = new_edge[0].unsqueeze(0)
-        new_edge_temp2 = new_edge[1].unsqueeze(0)
-        new_edge_homo = torch.cat((new_edge_temp2, new_edge_temp1), dim=0)
-        print('new_edge_homo', new_edge_homo, new_edge_homo.shape)
-        data.edge_index = torch.cat([data.edge_index, new_edge], dim=1)
+
+        edge_score_1, edge_score_2 = model.infer()
+        edge_score = edge_score_1 + 0.1 * edge_score_2
+        print('edge_score_1', edge_score_1, edge_score_1.shape)
+        print('edge_score_2', edge_score_2, edge_score_2.shape)
+        print('edge_score', edge_score, edge_score.shape)
+        edge_mask = edge_score > 15
+        new_edge_index = all_edge_index[:,edge_mask]
+        print('new_edge_index', new_edge_index, new_edge_index.shape)
+
+        prev_num_edges = data.num_edges
+        data.edge_index = new_edge_index
+        print('prev_num_edges', prev_num_edges)
         print('data.num_edges', data.num_edges)
-        data.edge_index = torch.cat([data.edge_index, new_edge_homo], dim=1)
-        print('data.num_edges', data.num_edges)
+        print('edge len difference', data.num_edges-prev_num_edges)
+
         pred = logits.max(1)[1]
         Y = F.one_hot(pred).float()
         YYT = torch.matmul(Y, Y.T)
@@ -225,7 +253,6 @@ for run in range(1, 5 + 1):
     test_accs.append(test_acc)
 
     prev_x, prev_logits, YYT = distillation()
-    # TODO here make new topology based on the infer
 
     A_temp = to_dense_adj(data.edge_index)[0]
     A_temp.fill_diagonal_(1)
@@ -234,7 +261,7 @@ for run in range(1, 5 + 1):
     A = A_temp
 
     compare_topology(A_temp, data, cm_filename='main'+str(run))
-    plot_tsne(prev_x, data.y, 'tsne_gold.png')
+    # plot_tsne(prev_x, data.y, 'tsne_gold.png')
     plot_sorted_topology_with_gold_topology(A_temp, gold_A, data, 'A_sorted_original_with_gold_'+str(run)+'.png', sorting=True)
 
 # Analytics
