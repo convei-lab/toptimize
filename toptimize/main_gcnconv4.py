@@ -220,8 +220,8 @@ A = to_dense_adj(data.edge_index)[0]
 A.fill_diagonal_(1)
 print('A', A, A.shape)
 # print('ok?', torch.all(A==1 or A==0))
-compare_topology(A, gold_A, cm_filename='main'+str(run))
-plot_tsne(final_x, data.y, 'tsne_0.png')
+# compare_topology(A, gold_A, cm_filename='main'+str(run))
+# plot_tsne(final_x, data.y, 'tsne_0.png')
 input()
 
 
@@ -354,7 +354,7 @@ for run in range(1, 10 + 1):
     print('A', A, A.shape)
     # print('ok?', torch.all(A==1 or A==0))
     compare_topology(A, gold_A, cm_filename='main'+str(run))
-    plot_tsne(final_x, data.y, 'tsne_'+str(run)+'.png')
+    # plot_tsne(final_x, data.y, 'tsne_'+str(run)+'.png')
     input()
 
 # Analytics
