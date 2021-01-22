@@ -6,7 +6,7 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import numpy as np
 
 def print_dataset_stat(dataset, data):
-    print()
+    input('Dataset Statistics'+str('='*40))
     print(f'Dataset: {dataset}:')
     print('===========================================================================================================')
     print(f'Number of graphs: {len(dataset)}')
@@ -29,6 +29,7 @@ def print_dataset_stat(dataset, data):
     print(f'Edge index: {data.edge_index} {data.edge_index.shape}')
 
 def print_label_relation(data):
+    input('Label Relation'+str('='*40))
     A = to_dense_adj(data.edge_index)[0]
     A.fill_diagonal_(1)
     gold_Y = F.one_hot(data.y).float()
@@ -56,7 +57,9 @@ def print_label_relation(data):
     print(f'Gold A: {sorted_gold_A}')
     print(f'Shape: {sorted_gold_A.shape}')
 
+
 def compare_topology(pred_A, data, cm_filename='confusion_matrix_display'):
+    input('Confusion Matrix '+str('='*40))
     gold_Y = F.one_hot(data.y).float()
     gold_A = torch.matmul(gold_Y, gold_Y.T)
     
@@ -71,9 +74,7 @@ def compare_topology(pred_A, data, cm_filename='confusion_matrix_display'):
     tpr = tp/(tp+fn)
     tnr = tn/(tn+fp)
     f1 = 2*(ppv*tpr)/(ppv+tpr)
-    print()
-    print('Confusion Matrix')
-    print('============================================================')
+
     print(f'Flatten A: {flat_pred_A}')
     print(f'Shape: {flat_pred_A.shape}')
     print(f'Number of Positive Prediction: {flat_pred_A.sum()} ({flat_pred_A.sum().true_divide(len(flat_pred_A))})')
@@ -100,7 +101,8 @@ def compare_topology(pred_A, data, cm_filename='confusion_matrix_display'):
     plt.close()
 
 
-def plot_tsne(tsne_x, tsne_y, fig_name, label_names=None):
+def plot_tsne(tsne_x, tsne_y, figname, label_names=None):
+    input('Plot TSNE'+str('='*40))
     from sklearn.manifold import TSNE
     from matplotlib import pyplot as plt
     
@@ -118,12 +120,14 @@ def plot_tsne(tsne_x, tsne_y, fig_name, label_names=None):
     plt.figure(figsize=(6, 5))
     colors = 'r', 'g', 'b', 'c', 'y', 'orange', 'purple'
     for i, c, label in zip(target_ids, colors, label_names):
-        plt.scatter(X_2d[tsne_y == i, 0], X_2d[tsne_y == i, 1], c=c, s=3, label=label)
+        plt.scatter(X_2d[tsne_y == i, 0], X_2d[tsne_y == i, 1], c=c, s=2, label=label)
     plt.legend()
-    plt.savefig(fig_name)
+    plt.savefig(figname)
     plt.clf()
     plt.cla()
     plt.close()
+
+    print('Saved as', figname)
 
 def cpu(variable):
     if hasattr(variable, 'is_cuda') and variable.is_cuda:
@@ -142,6 +146,7 @@ def sort_topology(adj, sorted_Y_indices):
     return adj
 
 def plot_topology(adj, data, figname, sorting=False):
+    input('Plot Topology'+str('='*40))
     from matplotlib import pyplot as plt
     fig = plt.gcf()
     DPI = fig.get_dpi()
@@ -160,12 +165,15 @@ def plot_topology(adj, data, figname, sorting=False):
     plt.cla()
     plt.close()
 
+    print('Saved as', figname)
+
 def zero_to_nan(adj):
     nan_adj = np.copy(adj).astype('float')
     nan_adj[nan_adj==0] = np.nan # Replace every 0 with 'nan'
     return nan_adj
 
 def plot_sorted_topology_with_gold_topology(adj, gold_adj, data, figname, sorting=False):
+    input('Plot Sorted Topology With Gold Topology'+str('='*40))
     from matplotlib import pyplot as plt
     fig = plt.gcf()
     DPI = fig.get_dpi()
@@ -201,3 +209,4 @@ def plot_sorted_topology_with_gold_topology(adj, gold_adj, data, figname, sortin
     plt.clf()
     plt.cla()
     plt.close()
+    print('Saved as', figname)
