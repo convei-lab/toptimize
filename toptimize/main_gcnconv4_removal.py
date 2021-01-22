@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.datasets import Planetoid
 import torch_geometric.transforms as T
-from torch_geometric.nn import GCNConv, GCN4Conv  # noqa
+from torch_geometric.nn import GCNConv, GCN4ConvRMV  # noqa
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from torch_geometric.utils import to_dense_adj
 import matplotlib.pyplot as plt
@@ -19,7 +19,7 @@ parser.add_argument('--use_gdc', action='store_true',
                     help='Use GDC preprocessing.')
 args = parser.parse_args()
 
-dataset = 'PubMed'
+dataset = 'Cora'
 path = osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data', dataset)
 dataset = Planetoid(path, dataset, transform=T.NormalizeFeatures())
 data = dataset[0]
@@ -104,14 +104,7 @@ if args.use_gdc:
                                            dim=0), exact=True)
     data = gdc(data)
 
-print('data.edge_index', data.edge_index, data.edge_index.shape)
-mask = torch.randint(0, 3 + 1, (1, data.edge_index.size(1)))[0]
-print('mask', mask, mask.shape)
-mask = mask >= 3
-print('mask', mask, mask.shape)
-data.edge_index = data.edge_index[:, mask]
-print('data.edge_index', data.edge_index, data.edge_index.shape)
-input()
+
 
 
 run = 0
@@ -150,6 +143,7 @@ print('Model', model)
 print('Optimizer', optimizer)
 
 def train():
+    print()
     model.train()
     optimizer.zero_grad()
     final, logits = model()
@@ -222,12 +216,11 @@ def plot_tsne(tsne_x, tsne_y, fig_name, label_names=None):
 
 prev_final, YYT, final_x = final_and_yyt_for_supervision()
 
-# A = to_dense_adj(data.edge_index)[0]
-# A.fill_diagonal_(1)
-# print('A', A, A.shape)
-# # print('ok?', torch.all(A==1 or A==0))
-# compare_topology(A, gold_A, cm_filename='main'+str(run))
-# plot_tsne(final_x, data.y, 'tsne_0.png')
+A = to_dense_adj(data.edge_index)[0]
+A.fill_diagonal_(1)
+print('A', A, A.shape)
+compare_topology(A, gold_A, cm_filename='main'+str(run))
+plot_tsne(final_x, data.y, 'tsne_0.png')
 input()
 
 
@@ -242,14 +235,14 @@ input()
 
 val_accs, test_accs = [], []
 
-for run in range(1, 0 + 1):
+for run in range(1, 10 + 1):
     # denser_edge_index = torch.nonzero(YYT == 1, as_tuple=False)
     # denser_edge_index = denser_edge_index.t().contiguous()
 
     class Net(torch.nn.Module):
         def __init__(self):
             super(Net, self).__init__()
-            self.conv1 = GCN4Conv(dataset.num_features, 16, cached=True,
+            self.conv1 = GCN4ConvRMV(dataset.num_features, 16, cached=True,
                                 normalize=not args.use_gdc)
             self.conv2 = GCNConv(16, dataset.num_classes, cached=True,
                                 normalize=not args.use_gdc)
@@ -280,6 +273,7 @@ for run in range(1, 0 + 1):
     print('Optimizer', optimizer)
 
     def train():
+        print()
         model.train()
         optimizer.zero_grad()
         final, logits = model()
@@ -287,7 +281,7 @@ for run in range(1, 0 + 1):
         task_loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
         print('Task loss', task_loss)
 
-        link_loss = GCN4Conv.get_link_prediction_loss(model)
+        link_loss = GCN4ConvRMV.get_link_prediction_loss(model)
         print('Link loss', link_loss)
 
         # redundancy_loss = F.mse_loss(final, prev_final, reduction = 'mean')
@@ -315,6 +309,29 @@ for run in range(1, 0 + 1):
     def final_and_yyt_for_supervision():
         model.eval()
         final, logits = model()
+
+
+        print('original data.num_edges', data.num_edges)
+
+        del_edge = model.conv1.cache["del_edge"]
+        del_edge = del_edge[:,:]
+        print('del_edge', del_edge, del_edge.shape)
+        del_edge_temp1 = del_edge[0].unsqueeze(0)
+        del_edge_temp2 = del_edge[1].unsqueeze(0)
+        del_edge_homo = torch.cat((del_edge_temp2, del_edge_temp1), dim=0)
+        print('del_edge_homo', del_edge_homo, del_edge_homo.shape)
+        total_del_edge = torch.cat([del_edge, del_edge_homo], dim=-1).T
+        print('total_del_edge', total_del_edge, total_del_edge.shape) 
+        temp_edge = data.edge_index.T
+        for i, j in total_del_edge:
+            for idx, (ii, jj) in enumerate(temp_edge):
+                if (i == ii and j == jj) or (i == jj and j == ii):
+                    data.edge_index = torch.cat([data.edge_index[:, :idx], data.edge_index[:, idx+1:]], dim=-1)
+                    temp_edge = data.edge_index.T
+                    break
+        print('data.num_edges', data.num_edges)
+        print()
+
         new_edge = model.conv1.cache["new_edge"]
         new_edge = new_edge[:,:]
         print('new_edge', new_edge, new_edge.shape)
@@ -326,6 +343,8 @@ for run in range(1, 0 + 1):
         print('data.num_edges', data.num_edges)
         data.edge_index = torch.cat([data.edge_index, new_edge_homo], dim=1)
         print('data.num_edges', data.num_edges)
+
+
         pred = logits.max(1)[1]
         Y = F.one_hot(pred).float()
         YYT = torch.matmul(Y, Y.T)
@@ -351,15 +370,14 @@ for run in range(1, 0 + 1):
     print("Finished Training", run, '\n')
 
     prev_final, YYT, final_x = final_and_yyt_for_supervision()
-    # A = to_dense_adj(data.edge_index)[0]
-    # A[A>1] = 1
-    # # with open('newA_' + str(run) + '.pickle', 'wb') as f:
-    # #     pickle.dump(A, f)
-    # A.fill_diagonal_(1)
-    # print('A', A, A.shape)
-    # # print('ok?', torch.all(A==1 or A==0))
-    # compare_topology(A, gold_A, cm_filename='main'+str(run))
-    # plot_tsne(final_x, data.y, 'tsne_'+str(run)+'.png')
+    A = to_dense_adj(data.edge_index)[0]
+    A[A>1] = 1
+    # with open('newA_' + str(run) + '.pickle', 'wb') as f:
+    #     pickle.dump(A, f)
+    A.fill_diagonal_(1)
+    print('A', A, A.shape)
+    compare_topology(A, gold_A, cm_filename='main'+str(run))
+    plot_tsne(final_x, data.y, 'tsne_'+str(run)+'.png')
     input()
 
 # Analytics
