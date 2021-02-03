@@ -228,44 +228,31 @@ for run in range(1, 5 + 1):
         x, logits = model()
 
         edge_score_1, edge_score_2 = model.infer()
-        edge_score = 1* edge_score_1 +10 * edge_score_2
+        edge_score = 0* edge_score_1 +1 * edge_score_2
         print('edge_score_1', edge_score_1, edge_score_1.shape)
         print('edge_score_2', edge_score_2, edge_score_2.shape)
         print('edge_score', edge_score, edge_score.shape)
 
         # Add
-        ############## Thresholding ################
-        # edge_mask = edge_score > 30
-        # new_edge_index = all_edge_index[:,edge_mask]
-        ################ Sorting ###################
-        sorted_score, mask_indices = torch.sort(edge_score, descending=True)
-        new_edge_index = all_edge_index[:,mask_indices[:200000]]
-        ################## Add #####################
+        edge_mask = edge_score > 5
+        new_edge_index = all_edge_index[:,edge_mask]
         print('new_edge_index', new_edge_index, new_edge_index.shape)
         prev_num_edges = data.num_edges
         data.edge_index = torch.cat([data.edge_index, new_edge_index], dim=-1)
         print('data.edge_index', data.edge_index, data.edge_index.shape)
-        print('data.num_edges', data.num_edges)
-        print()
 
         # Renorm
         dense_adj = to_dense_adj(data.edge_index)[0]
         print('dense_adj', dense_adj, dense_adj.shape)
         dense_adj[dense_adj>1] = 1
         print('dense_adj (norm)', dense_adj, dense_adj.shape)
-        ################## Drop ####################
-        del_edge_index = all_edge_index[:,mask_indices[-10000:]]
-        print('del_edge_index', del_edge_index, del_edge_index.shape)
-        for i, j in del_edge_index.T:
-            dense_adj[i][j] = 0
-            dense_adj[j][i] = 0
-        #############################################
         edge_index, edge_weight = dense_to_sparse(dense_adj)
         print('edge_index', edge_index, edge_index.shape)
         print('edge_weight', edge_weight, edge_weight.shape)
         data.edge_index = edge_index
         data.edge_weight = edge_weight
 
+        # Drop
 
         # Stats
         print('prev_num_edges', prev_num_edges)
