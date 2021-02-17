@@ -6,3 +6,4 @@ pip install torch-sparse -f https://pytorch-geometric.com/whl/torch-1.6.0+${CUDA
 pip install torch-cluster -f https://pytorch-geometric.com/whl/torch-1.6.0+${CUDA}.html
 pip install torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.6.0+${CUDA}.html
 pip install torch-geometric==1.6.3
+pip install tensorflow-gpu==1.15.0
