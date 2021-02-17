@@ -48,6 +48,9 @@ print(f'Is undirected: {data.is_undirected()}')
 gold_Y = F.one_hot(data.y).float()
 gold_A = torch.matmul(gold_Y, gold_Y.T)
 
+print(gold_A)
+#input()
+
 print()
 print('Label Relation')
 print('============================================================')
@@ -196,7 +199,7 @@ for epoch in range(1, 201):
 print('Run', run, 'Val. Acc.', best_val_acc, 'Test Acc.', test_acc)
 
 print("Finished Training", run, '\n')
-input()
+#input()
 
 def plot_tsne(tsne_x, tsne_y, fig_name, label_names=None):
     from sklearn.manifold import TSNE
@@ -235,9 +238,11 @@ input()
 
 val_accs, test_accs = [], []
 
-for run in range(1, 5 + 1):
+for run in range(1, 1000 + 1):
     # denser_edge_index = torch.nonzero(YYT == 1, as_tuple=False)
     # denser_edge_index = denser_edge_index.t().contiguous()
+    # denser_edge_index = denser_edge_index.cuda()
+    # denser_edge_index = data.edge_index.cuda()
 
     class Net(torch.nn.Module):
         def __init__(self):
@@ -278,18 +283,17 @@ for run in range(1, 5 + 1):
         final, logits = model()
 
         task_loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
-        print('Task loss', task_loss)
+        # print('Task loss', task_loss)
 
         link_loss = GCN4Conv.get_link_prediction_loss(model)
-        print('Link loss', link_loss)
+        # print('Link loss', link_loss)
 
         # redundancy_loss = F.mse_loss(final, prev_final, reduction = 'mean')
         redundancy_loss = F.kl_div(logits, prev_final, reduction = 'none', log_target = True).mean()
         #redundancy_loss = torch.distributions.kl.kl_divergence(logits, prev_final).sum(-1)
-        print('Redundancy loss', redundancy_loss)
+        # print('Redundancy loss', redundancy_loss)
 
         total_loss = 1 * task_loss +  1 * link_loss + 10 * redundancy_loss
-        print('Total loss', total_loss)
 
         total_loss.backward()
         optimizer.step()
@@ -308,21 +312,26 @@ for run in range(1, 5 + 1):
     def final_and_yyt_for_supervision():
         model.eval()
         final, logits = model()
-        new_edge = model.conv1.cache["new_edge"]
-        new_edge = new_edge[:,:]
-        print('new_edge', new_edge, new_edge.shape)
-        new_edge_temp1 = new_edge[0].unsqueeze(0)
-        new_edge_temp2 = new_edge[1].unsqueeze(0)
-        new_edge_homo = torch.cat((new_edge_temp2, new_edge_temp1), dim=0)
-        print('new_edge_homo', new_edge_homo, new_edge_homo.shape)
-        data.edge_index = torch.cat([data.edge_index, new_edge], dim=1)
-        print('data.num_edges', data.num_edges)
-        data.edge_index = torch.cat([data.edge_index, new_edge_homo], dim=1)
-        print('data.num_edges', data.num_edges)
-        pred = logits.max(1)[1]
-        Y = F.one_hot(pred).float()
-        YYT = torch.matmul(Y, Y.T)
-        return logits, YYT, final
+        if model.conv1.cache["new_edge"] != None:
+            new_edge = model.conv1.cache["new_edge"]
+            new_edge = new_edge[:,:]
+            print('new_edge', new_edge, new_edge.shape)
+
+            new_edge_temp1 = new_edge[0].unsqueeze(0)
+            new_edge_temp2 = new_edge[1].unsqueeze(0)
+            new_edge_homo = torch.cat((new_edge_temp2, new_edge_temp1), dim=0)
+            print('new_edge_homo', new_edge_homo, new_edge_homo.shape)
+            print('data.num_edges(before concat)', data.num_edges)
+            data.edge_index = torch.cat([data.edge_index, new_edge], dim=1)
+            print('data.num_edges', data.num_edges)
+            data.edge_index = torch.cat([data.edge_index, new_edge_homo], dim=1)
+            print('data.num_edges', data.num_edges)
+            pred = logits.max(1)[1]
+            Y = F.one_hot(pred).float()
+            YYT = torch.matmul(Y, Y.T)
+            return logits, YYT, final, 1
+        else:
+            return 0, 0, 0, 0
     
     print("Start Training", run)
     print('===========================================================================================================')
@@ -336,24 +345,27 @@ for run in range(1, 5 + 1):
         log = 'Epoch: {:03d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
         print(log.format(epoch, train_acc, best_val_acc, test_acc))
     print('Run', run, 'Val. Acc.', best_val_acc, 'Test Acc.', test_acc)
-    input()
+    #input()
 
     val_accs.append(best_val_acc)
     test_accs.append(test_acc)
 
     print("Finished Training", run, '\n')
 
-    prev_final, YYT, final_x = final_and_yyt_for_supervision()
+    prev_final, YYT, final_x, new_edge = final_and_yyt_for_supervision()
     A = to_dense_adj(data.edge_index)[0]
     A[A>1] = 1
-    # with open('newA_' + str(run) + '.pickle', 'wb') as f:
-    #     pickle.dump(A, f)
     A.fill_diagonal_(1)
     print('A', A, A.shape)
     # print('ok?', torch.all(A==1 or A==0))
-    # compare_topology(A, gold_A, cm_filename='main'+str(run))
+    if new_edge == 0 or run == 100 or run == 200 or run == 300 or run == 400 or run == 500 or run == 600 or run == 700 or run == 800 or run == 900 or run == 1000:
+        with open('newA_' + str(run) + '.pickle', 'wb') as f:
+            pickle.dump(A, f)
+        compare_topology(A, gold_A, cm_filename='main'+str(run))
+        print("@@@@@@@@@@@@@@FINISH THE TRAIN@@@@@@@@@@@@@@@@@@@@")
+        # break
     # plot_tsne(final_x, data.y, 'tsne_'+str(run)+'.png')
-    input()
+    #input()
 
 # Analytics
 print('Task Loss + Link Prediction Loss')

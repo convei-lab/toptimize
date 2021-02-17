@@ -100,12 +100,12 @@ def compare_topology(pred_A, gold_A, cm_filename='confusion_matrix_display'):
 
 # data.edge_index = edge_index.t().contiguous()
 
-with open('newA_5.pickle', 'rb') as f:
+with open('newA_300.pickle', 'rb') as f:
      A_add_TP = pickle.load(f)
 
-# A_add_TP.fill_diagonal_(1)
+# # A_add_TP.fill_diagonal_(1)
 
-# compare_topology(A_add_TP, gold_A, cm_filename='newA_1')
+# # compare_topology(A_add_TP, gold_A, cm_filename='newA_1')
 
 edge_index = torch.nonzero(A_add_TP == 1, as_tuple=False)
 data.edge_index = edge_index.t().contiguous()
@@ -145,7 +145,7 @@ def test():
 
 best_val_acc = test_acc = 0
 val_accs, test_accs = [], []
-for i, run in enumerate(range(5)):
+for i, run in enumerate(range(20)):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model, data = Net().to(device), data.to(device)
     optimizer = torch.optim.Adam([
