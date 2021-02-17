@@ -196,16 +196,6 @@ for run in range(1, 5 + 1):
     optimizer = torch.optim.Adam([
         dict(params=model.conv1.parameters(), weight_decay=5e-4),
         dict(params=model.conv2.parameters(), weight_decay=0),
-<<<<<<< HEAD
-        dict(params=model.tenet1.parameters(), weight_decay=5e-4)
-        # dict(params=model.tenet2.parameters(), weight_decay=5e-4),
-    ], lr=0.01)
-    # input('Model Loading'+str('='*40))
-    # print('Model\n', model, '\nOptimizer\n', optimizer)
-    # print('Model Parameterers')
-    # for name, param in model.named_parameters():
-    #     print(name, param, 'grad', param.requires_grad)
-=======
         dict(params=model.tenet1.parameters(), weight_decay=5e-4),
         dict(params=model.tenet2.parameters(), weight_decay=5e-4),
     ], lr=0.01)
@@ -213,7 +203,6 @@ for run in range(1, 5 + 1):
     print('Model Parameterers')
     for name, param in model.named_parameters():
         print(name, param, 'grad', param.requires_grad)
->>>>>>> 903131a59961d956d4fa8ee3e05311448abacd42
 
     def train():
         model.train()
@@ -312,15 +301,9 @@ for run in range(1, 5 + 1):
     print('A difference', torch.where(A != A_temp), len(torch.where(A!=A_temp)[0]), len(torch.where(A!=A_temp)[1]))
     A = A_temp
 
-<<<<<<< HEAD
-    # compare_topology(A_temp, data, cm_filename='main'+str(run))
-    # plot_tsne(prev_x, data.y, 'tsne_gold.png')
-    # plot_sorted_topology_with_gold_topology(A_temp, gold_A, data, 'A_sorted_original_with_gold_'+str(run)+'.png', sorting=True)
-=======
     compare_topology(A_temp, data, cm_filename='main'+str(run))
     plot_tsne(prev_x, data.y, 'tsne_'+str(run)+'.png')
     plot_sorted_topology_with_gold_topology(A_temp, gold_A, data, 'A_sorted_original_with_gold_'+str(run)+'.png', sorting=True)
->>>>>>> 903131a59961d956d4fa8ee3e05311448abacd42
 
 
 
