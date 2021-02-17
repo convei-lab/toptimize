@@ -38,7 +38,7 @@ if args.use_gdc:
                                            dim=0), exact=True)
     data = gdc(data)
 
-seed = 0
+seed = 10
 run = 0
 class GCN(torch.nn.Module):
     def __init__(self):
@@ -297,7 +297,7 @@ for run in range(1, 5 + 1):
     prev_x, prev_logits, YYT = distillation()
 
     A_temp = to_dense_adj(data.edge_index)[0]
-    A_temp.fill_diagonal_(1)
+    # A_temp.fill_diagonal_(1)
     A_temp[A_temp>1] = 1
     print('A difference', torch.where(A != A_temp), len(torch.where(A!=A_temp)[0]), len(torch.where(A!=A_temp)[1]))
     A = A_temp
