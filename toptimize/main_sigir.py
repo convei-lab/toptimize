@@ -26,24 +26,35 @@ parser.add_argument('--use_gdc', action='store_true',
 args = parser.parse_args()
 
 method_name = 'GATConv4SIGIR_woLL'
-dataset_name = 'PubMed'
-basemodel = 'GAT'
+dataset_name = 'Cora'
+basemodel = 'GCN'
 path_name = method_name + '_' + dataset_name + '_' + basemodel
 
 # Path
 exp_path = (Path.cwd() / '..' / 'experiment' / path_name).resolve()
 exp_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 
-# Log
-log_path = exp_path / str(path_name+'.log')
-logging.basicConfig(filename=log_path, level=logging.DEBUG)
-print_to_log_file = True
-if print_to_log_file:
-    log_file = open(log_path, "w")
-    sys.stdout = log_file # change default print() to write into log file
-    def clear():
-        sys.stdout.close()
-    atexit.register(clear)
+# Logger
+def log(text, modular_log_path=False, filepath=None):
+    global global_logging, global_log_file
+    print(text)
+    if global_logging:
+        print(text, file=global_log_file)
+    if modular_log_path:
+        print(text, file=global_log_file)
+
+# Global logging
+global_logging = True
+global_log_path = exp_path / str(path_name+'.log')
+logging.basicConfig(filename=global_log_path, level=logging.DEBUG)
+monitor_stdout = sys.stdout
+global_log_file = open(global_log_path, "w")
+
+# Confusion matrix logging
+
+
+    
+
 
 # Data
 data_path = osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data', dataset_name)
@@ -196,7 +207,7 @@ print('Optimizer', optimizer)
 def train():
     model.train()
     optimizer.zero_grad()
-    final, logits = model()
+    _final, logits = model()
 
     task_loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
     # print('Task loss', task_loss)
@@ -209,7 +220,7 @@ def train():
 @torch.no_grad()
 def test():
     model.eval()
-    (final, logits), accs = model(), []
+    (_final, logits), accs = model(), []
     for _, mask in data('train_mask', 'val_mask', 'test_mask'):
         pred = logits[mask].max(1)[1]
         acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
@@ -238,9 +249,21 @@ for epoch in range(1, 201):
     # print(log.format(epoch, train_acc, best_val_acc, test_acc))
     # input()
 print('Run', run, 'Val. Acc.', best_val_acc, 'Test Acc.', test_acc)
-
 print("Finished Training", run, '\n')
 input()
+
+# Print model's state_dict
+print("Model's state_dict:")
+for param_tensor in model.state_dict():
+    print(param_tensor, "\t", model.state_dict()[param_tensor].size())
+
+# Print optimizer's state_dict
+print("Optimizer's state_dict:")
+for var_name in optimizer.state_dict():
+    print(var_name, "\t", optimizer.state_dict()[var_name])
+
+# Saving & Loading Model for Inference
+torch.save(model.state_dict(), PATH)
 
 def plot_tsne(tsne_x, tsne_y, fig_name, label_names=None):
     from sklearn.manifold import TSNE
@@ -331,7 +354,7 @@ for run in range(1, 5 + 1):
     def train():
         model.train()
         optimizer.zero_grad()
-        final, logits = model()
+        _final, logits = model()
 
         task_loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
         # print('Task loss', task_loss)
@@ -360,7 +383,7 @@ for run in range(1, 5 + 1):
     @torch.no_grad()
     def test():
         model.eval()
-        (final, logits), accs = model(), []
+        (_final, logits), accs = model(), []
         for _, mask in data('train_mask', 'val_mask', 'test_mask'):
             pred = logits[mask].max(1)[1]
             acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()

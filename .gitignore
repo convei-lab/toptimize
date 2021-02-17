@@ -1,4 +1,5 @@
 archive
 __pycache__
 data
-workspace.code-workspace
+toptimize.code-workspace
+.vscode
