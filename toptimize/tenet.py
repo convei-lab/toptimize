@@ -148,6 +148,7 @@ for run in range(1, 5 + 1):
     print('squared_adj (norm)', squared_adj, squared_adj.shape)
     squared_adj.fill_diagonal_(1)
     compare_topology(squared_adj, data, cm_filename='main'+str(run))
+    plot_sorted_topology_with_gold_topology(squared_adj, gold_A, data, 'A_squared_sorted_with_gold'+str(run)+'.png', sorting=True)
 
     squared_adj.fill_diagonal_(0)
     print('squared_adj (no_loop)', squared_adj, squared_adj.shape)
