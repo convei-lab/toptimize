@@ -38,7 +38,7 @@ if args.use_gdc:
                                            dim=0), exact=True)
     data = gdc(data)
 
-seed = 10
+seed = 0
 run = 0
 class GCN(torch.nn.Module):
     def __init__(self):
@@ -196,16 +196,6 @@ for run in range(1, 5 + 1):
     optimizer = torch.optim.Adam([
         dict(params=model.conv1.parameters(), weight_decay=5e-4),
         dict(params=model.conv2.parameters(), weight_decay=0),
-<<<<<<< HEAD
-        dict(params=model.tenet1.parameters(), weight_decay=5e-4)
-        # dict(params=model.tenet2.parameters(), weight_decay=5e-4),
-    ], lr=0.01)
-    # input('Model Loading'+str('='*40))
-    # print('Model\n', model, '\nOptimizer\n', optimizer)
-    # print('Model Parameterers')
-    # for name, param in model.named_parameters():
-    #     print(name, param, 'grad', param.requires_grad)
-=======
         dict(params=model.tenet1.parameters(), weight_decay=5e-4),
         dict(params=model.tenet2.parameters(), weight_decay=5e-4),
     ], lr=0.01)
@@ -213,7 +203,6 @@ for run in range(1, 5 + 1):
     print('Model Parameterers')
     for name, param in model.named_parameters():
         print(name, param, 'grad', param.requires_grad)
->>>>>>> 903131a59961d956d4fa8ee3e05311448abacd42
 
     def train():
         model.train()
@@ -239,44 +228,31 @@ for run in range(1, 5 + 1):
         x, logits = model()
 
         edge_score_1, edge_score_2 = model.infer()
-        edge_score = 1* edge_score_1 +10 * edge_score_2
+        edge_score = 0* edge_score_1 +1 * edge_score_2
         print('edge_score_1', edge_score_1, edge_score_1.shape)
         print('edge_score_2', edge_score_2, edge_score_2.shape)
         print('edge_score', edge_score, edge_score.shape)
 
         # Add
-        ############## Thresholding ################
-        # edge_mask = edge_score > 30
-        # new_edge_index = all_edge_index[:,edge_mask]
-        ################ Sorting ###################
-        sorted_score, mask_indices = torch.sort(edge_score, descending=True)
-        new_edge_index = all_edge_index[:,mask_indices[:200000]]
-        ################## Add #####################
+        edge_mask = edge_score > 5
+        new_edge_index = all_edge_index[:,edge_mask]
         print('new_edge_index', new_edge_index, new_edge_index.shape)
         prev_num_edges = data.num_edges
         data.edge_index = torch.cat([data.edge_index, new_edge_index], dim=-1)
         print('data.edge_index', data.edge_index, data.edge_index.shape)
-        print('data.num_edges', data.num_edges)
-        print()
 
         # Renorm
         dense_adj = to_dense_adj(data.edge_index)[0]
         print('dense_adj', dense_adj, dense_adj.shape)
         dense_adj[dense_adj>1] = 1
         print('dense_adj (norm)', dense_adj, dense_adj.shape)
-        ################## Drop ####################
-        del_edge_index = all_edge_index[:,mask_indices[-10000:]]
-        print('del_edge_index', del_edge_index, del_edge_index.shape)
-        for i, j in del_edge_index.T:
-            dense_adj[i][j] = 0
-            dense_adj[j][i] = 0
-        #############################################
         edge_index, edge_weight = dense_to_sparse(dense_adj)
         print('edge_index', edge_index, edge_index.shape)
         print('edge_weight', edge_weight, edge_weight.shape)
         data.edge_index = edge_index
         data.edge_weight = edge_weight
 
+        # Drop
 
         # Stats
         print('prev_num_edges', prev_num_edges)
@@ -307,20 +283,14 @@ for run in range(1, 5 + 1):
     prev_x, prev_logits, YYT = distillation()
 
     A_temp = to_dense_adj(data.edge_index)[0]
-    # A_temp.fill_diagonal_(1)
+    A_temp.fill_diagonal_(1)
     A_temp[A_temp>1] = 1
     print('A difference', torch.where(A != A_temp), len(torch.where(A!=A_temp)[0]), len(torch.where(A!=A_temp)[1]))
     A = A_temp
 
-<<<<<<< HEAD
-    # compare_topology(A_temp, data, cm_filename='main'+str(run))
-    # plot_tsne(prev_x, data.y, 'tsne_gold.png')
-    # plot_sorted_topology_with_gold_topology(A_temp, gold_A, data, 'A_sorted_original_with_gold_'+str(run)+'.png', sorting=True)
-=======
     compare_topology(A_temp, data, cm_filename='main'+str(run))
     plot_tsne(prev_x, data.y, 'tsne_'+str(run)+'.png')
     plot_sorted_topology_with_gold_topology(A_temp, gold_A, data, 'A_sorted_original_with_gold_'+str(run)+'.png', sorting=True)
->>>>>>> 903131a59961d956d4fa8ee3e05311448abacd42
 
 
 

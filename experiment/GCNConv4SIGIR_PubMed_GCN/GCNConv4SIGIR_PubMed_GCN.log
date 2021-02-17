@@ -1,0 +1,356 @@
+Dataset: PubMed():
+===========================================================================================================
+Number of graphs: 1
+Number of features: 500
+Number of classes: 3
+Data(edge_index=[2, 88648], test_mask=[19717], train_mask=[19717], val_mask=[19717], x=[19717, 500], y=[19717])
+===========================================================================================================
+Number of nodes: 19717
+Number of edges: 88648
+Average node degree: 4.50
+Number of training nodes: 60
+Training node label rate: 0.00
+Contains isolated nodes: False
+Contains self-loops: False
+Is undirected: True
+
+Label Relation
+============================================================
+Gold Label Y: tensor([[0., 1., 0.],
+        [0., 1., 0.],
+        [1., 0., 0.],
+        ...,
+        [0., 0., 1.],
+        [1., 0., 0.],
+        [0., 0., 1.]])
+Shape: torch.Size([19717, 3])
+Transpose of Y: tensor([[0., 0., 1.,  ..., 0., 1., 0.],
+        [1., 1., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 1., 0., 1.]])
+Shape: torch.Size([3, 19717])
+Gold A: tensor([[1., 1., 0.,  ..., 0., 0., 0.],
+        [1., 1., 0.,  ..., 0., 0., 0.],
+        [0., 0., 1.,  ..., 0., 1., 0.],
+        ...,
+        [0., 0., 0.,  ..., 1., 0., 1.],
+        [0., 0., 1.,  ..., 0., 1., 0.],
+        [0., 0., 0.,  ..., 1., 0., 1.]])
+Shape: torch.Size([19717, 19717])
+
+Model Net(
+  (conv1): GCNConv(500, 16)
+  (conv2): GCNConv(16, 3)
+)
+Optimizer Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.01
+    weight_decay: 0.0005
+
+Parameter Group 1
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.01
+    weight_decay: 0
+)
+Start Training 0
+===========================================================================================================
+Run 0 Val. Acc. 0.81 Test Acc. 0.789
+Finished Training 0 
+
+A tensor([[1., 0., 0.,  ..., 0., 0., 0.],
+        [0., 1., 0.,  ..., 0., 0., 0.],
+        [0., 0., 1.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 1., 0., 0.],
+        [0., 0., 0.,  ..., 0., 1., 0.],
+        [0., 0., 0.,  ..., 0., 0., 1.]], device='cuda:0') torch.Size([19717, 19717])
+
+Model Net(
+  (conv1): GCN4ConvSIGIR(500, 16)
+  (conv2): GCNConv(16, 3)
+)
+Optimizer Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.01
+    weight_decay: 0.0005
+
+Parameter Group 1
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.01
+    weight_decay: 0
+)
+Start Training 1
+===========================================================================================================
+Run 1 Val. Acc. 0.822 Test Acc. 0.79
+Finished Training 1 
+
+original data.num_edges 88648
+new_edge tensor([[ 7061,    90, 10232],
+        [12374, 18536, 17395]], device='cuda:0') torch.Size([2, 3])
+new_edge_homo tensor([[12374, 18536, 17395],
+        [ 7061,    90, 10232]], device='cuda:0') torch.Size([2, 3])
+data.num_edges 88654
+dense_adj tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]], device='cuda:0') torch.Size([19717, 19717])
+dense_adj (norm) tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]], device='cuda:0') torch.Size([19717, 19717])
+edge_index tensor([[    0,     0,     0,  ..., 19714, 19715, 19716],
+        [ 1378,  1544,  6092,  ..., 12278,  4284, 16030]], device='cuda:0') torch.Size([2, 88654])
+edge_weight tensor([1., 1., 1.,  ..., 1., 1., 1.], device='cuda:0') torch.Size([88654])
+data.num_edges 88654
+A tensor([[1., 0., 0.,  ..., 0., 0., 0.],
+        [0., 1., 0.,  ..., 0., 0., 0.],
+        [0., 0., 1.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 1., 0., 0.],
+        [0., 0., 0.,  ..., 0., 1., 0.],
+        [0., 0., 0.,  ..., 0., 0., 1.]], device='cuda:0') torch.Size([19717, 19717])
+
+Model Net(
+  (conv1): GCN4ConvSIGIR(500, 16)
+  (conv2): GCNConv(16, 3)
+)
+Optimizer Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.01
+    weight_decay: 0.0005
+
+Parameter Group 1
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.01
+    weight_decay: 0
+)
+Start Training 2
+===========================================================================================================
+Run 2 Val. Acc. 0.822 Test Acc. 0.796
+Finished Training 2 
+
+original data.num_edges 88654
+new_edge tensor([[ 4557, 13880, 18450,  3669, 15518],
+        [ 1959,  7121,  4395,  3659, 13849]], device='cuda:0') torch.Size([2, 5])
+new_edge_homo tensor([[ 1959,  7121,  4395,  3659, 13849],
+        [ 4557, 13880, 18450,  3669, 15518]], device='cuda:0') torch.Size([2, 5])
+data.num_edges 88664
+dense_adj tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]], device='cuda:0') torch.Size([19717, 19717])
+dense_adj (norm) tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]], device='cuda:0') torch.Size([19717, 19717])
+edge_index tensor([[    0,     0,     0,  ..., 19714, 19715, 19716],
+        [ 1378,  1544,  6092,  ..., 12278,  4284, 16030]], device='cuda:0') torch.Size([2, 88664])
+edge_weight tensor([1., 1., 1.,  ..., 1., 1., 1.], device='cuda:0') torch.Size([88664])
+data.num_edges 88664
+A tensor([[1., 0., 0.,  ..., 0., 0., 0.],
+        [0., 1., 0.,  ..., 0., 0., 0.],
+        [0., 0., 1.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 1., 0., 0.],
+        [0., 0., 0.,  ..., 0., 1., 0.],
+        [0., 0., 0.,  ..., 0., 0., 1.]], device='cuda:0') torch.Size([19717, 19717])
+
+Model Net(
+  (conv1): GCN4ConvSIGIR(500, 16)
+  (conv2): GCNConv(16, 3)
+)
+Optimizer Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.01
+    weight_decay: 0.0005
+
+Parameter Group 1
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.01
+    weight_decay: 0
+)
+Start Training 3
+===========================================================================================================
+Run 3 Val. Acc. 0.82 Test Acc. 0.793
+Finished Training 3 
+
+original data.num_edges 88664
+new_edge tensor([[12363,  1045, 13880,  6189,   666],
+        [ 1785,  1253, 11192, 19409, 13880]], device='cuda:0') torch.Size([2, 5])
+new_edge_homo tensor([[ 1785,  1253, 11192, 19409, 13880],
+        [12363,  1045, 13880,  6189,   666]], device='cuda:0') torch.Size([2, 5])
+data.num_edges 88674
+dense_adj tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]], device='cuda:0') torch.Size([19717, 19717])
+dense_adj (norm) tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]], device='cuda:0') torch.Size([19717, 19717])
+edge_index tensor([[    0,     0,     0,  ..., 19714, 19715, 19716],
+        [ 1378,  1544,  6092,  ..., 12278,  4284, 16030]], device='cuda:0') torch.Size([2, 88674])
+edge_weight tensor([1., 1., 1.,  ..., 1., 1., 1.], device='cuda:0') torch.Size([88674])
+data.num_edges 88674
+A tensor([[1., 0., 0.,  ..., 0., 0., 0.],
+        [0., 1., 0.,  ..., 0., 0., 0.],
+        [0., 0., 1.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 1., 0., 0.],
+        [0., 0., 0.,  ..., 0., 1., 0.],
+        [0., 0., 0.,  ..., 0., 0., 1.]], device='cuda:0') torch.Size([19717, 19717])
+
+Model Net(
+  (conv1): GCN4ConvSIGIR(500, 16)
+  (conv2): GCNConv(16, 3)
+)
+Optimizer Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.01
+    weight_decay: 0.0005
+
+Parameter Group 1
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.01
+    weight_decay: 0
+)
+Start Training 4
+===========================================================================================================
+Run 4 Val. Acc. 0.816 Test Acc. 0.803
+Finished Training 4 
+
+original data.num_edges 88674
+new_edge tensor([[   90, 17024],
+        [16141, 18456]], device='cuda:0') torch.Size([2, 2])
+new_edge_homo tensor([[16141, 18456],
+        [   90, 17024]], device='cuda:0') torch.Size([2, 2])
+data.num_edges 88678
+dense_adj tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]], device='cuda:0') torch.Size([19717, 19717])
+dense_adj (norm) tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]], device='cuda:0') torch.Size([19717, 19717])
+edge_index tensor([[    0,     0,     0,  ..., 19714, 19715, 19716],
+        [ 1378,  1544,  6092,  ..., 12278,  4284, 16030]], device='cuda:0') torch.Size([2, 88678])
+edge_weight tensor([1., 1., 1.,  ..., 1., 1., 1.], device='cuda:0') torch.Size([88678])
+data.num_edges 88678
+A tensor([[1., 0., 0.,  ..., 0., 0., 0.],
+        [0., 1., 0.,  ..., 0., 0., 0.],
+        [0., 0., 1.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 1., 0., 0.],
+        [0., 0., 0.,  ..., 0., 1., 0.],
+        [0., 0., 0.,  ..., 0., 0., 1.]], device='cuda:0') torch.Size([19717, 19717])
+
+Model Net(
+  (conv1): GCN4ConvSIGIR(500, 16)
+  (conv2): GCNConv(16, 3)
+)
+Optimizer Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.01
+    weight_decay: 0.0005
+
+Parameter Group 1
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.01
+    weight_decay: 0
+)
+Start Training 5
+===========================================================================================================
+Run 5 Val. Acc. 0.814 Test Acc. 0.797
+Finished Training 5 
+
+original data.num_edges 88678
+new_edge tensor([[10876, 12545, 13849,  4395, 13321, 18215],
+        [13321,  7493,  6231, 10507, 16334, 19602]], device='cuda:0') torch.Size([2, 6])
+new_edge_homo tensor([[13321,  7493,  6231, 10507, 16334, 19602],
+        [10876, 12545, 13849,  4395, 13321, 18215]], device='cuda:0') torch.Size([2, 6])
+data.num_edges 88690
+dense_adj tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]], device='cuda:0') torch.Size([19717, 19717])
+dense_adj (norm) tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]], device='cuda:0') torch.Size([19717, 19717])
+edge_index tensor([[    0,     0,     0,  ..., 19714, 19715, 19716],
+        [ 1378,  1544,  6092,  ..., 12278,  4284, 16030]], device='cuda:0') torch.Size([2, 88690])
+edge_weight tensor([1., 1., 1.,  ..., 1., 1., 1.], device='cuda:0') torch.Size([88690])
+data.num_edges 88690
+A tensor([[1., 0., 0.,  ..., 0., 0., 0.],
+        [0., 1., 0.,  ..., 0., 0., 0.],
+        [0., 0., 1.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 1., 0., 0.],
+        [0., 0., 0.,  ..., 0., 1., 0.],
+        [0., 0., 0.,  ..., 0., 0., 1.]], device='cuda:0') torch.Size([19717, 19717])
+Task Loss + Link Prediction Loss
+Dataset split is the public fixed split
+Val. Acc.: 0.8187999999999999 +/- 0.003249615361854387
+Test. Acc.: 0.796 +/- 0.004
+Vals Accs:  [0.822 0.822 0.82  0.816 0.814]
+Test Accs [0.79  0.796 0.793 0.803 0.797]
