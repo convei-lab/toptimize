@@ -1,0 +1,6 @@
+Final Val. Acc.: 0.818
+Final Test. Acc.: 0.833
+Mean Val. Acc.: 0.8256666666666667 +/- 0.006128258770283417
+Mean Test. Acc.: 0.826 +/- 0.006
+Vals Accs: [0.814 0.808 0.818]
+Test Accs [0.818 0.826 0.833]
