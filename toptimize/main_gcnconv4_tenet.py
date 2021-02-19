@@ -40,7 +40,8 @@ print(f'Number of nodes: {data.num_nodes}')
 print(f'Number of edges: {data.num_edges}')
 print(f'Average node degree: {data.num_edges / data.num_nodes:.2f}')
 print(f'Number of training nodes: {data.train_mask.sum()}')
-print(f'Training node label rate: {int(data.train_mask.sum()) / data.num_nodes:.2f}')
+print(
+    f'Training node label rate: {int(data.train_mask.sum()) / data.num_nodes:.2f}')
 print(f'Contains isolated nodes: {data.contains_isolated_nodes()}')
 print(f'Contains self-loops: {data.contains_self_loops()}')
 print(f'Is undirected: {data.is_undirected()}')
@@ -57,6 +58,7 @@ print(f'Transpose of Y: {gold_Y.T}')
 print(f'Shape: {gold_Y.T.shape}')
 print(f'Gold A: {gold_A}')
 print(f'Shape: {gold_A.shape}')
+
 
 def compare_topology(pred_A, gold_A, cm_filename='confusion_matrix_display'):
     flat_pred_A = pred_A.detach().cpu().view(-1)
@@ -75,10 +77,12 @@ def compare_topology(pred_A, gold_A, cm_filename='confusion_matrix_display'):
     print('============================================================')
     print(f'Flatten A: {flat_pred_A}')
     print(f'Shape: {flat_pred_A.shape}')
-    print(f'Number of Positive Prediction: {flat_pred_A.sum()} ({flat_pred_A.sum().true_divide(len(flat_pred_A))})')
+    print(
+        f'Number of Positive Prediction: {flat_pred_A.sum()} ({flat_pred_A.sum().true_divide(len(flat_pred_A))})')
     print(f'Flatten Gold A: {flat_gold_A}')
     print(f'Shape: {flat_gold_A.shape}')
-    print(f'Number of Positive Class: {flat_gold_A.sum()} ({flat_gold_A.sum().true_divide(len(flat_gold_A))})')
+    print(
+        f'Number of Positive Class: {flat_gold_A.sum()} ({flat_gold_A.sum().true_divide(len(flat_gold_A))})')
     print(f'Confusion matrix: {conf_mat}')
     print(f'Raveled Confusion Matrix: {conf_mat.ravel()}')
     print(f'True positive: {tp} # 1 -> 1')
@@ -91,7 +95,8 @@ def compare_topology(pred_A, gold_A, cm_filename='confusion_matrix_display'):
     print(f'Selectivity: {round(tnr,2)} # TN/N')
     print(f'F1 score: {f1}')
 
-    disp = ConfusionMatrixDisplay(confusion_matrix=conf_mat, display_labels=[0,1])
+    disp = ConfusionMatrixDisplay(
+        confusion_matrix=conf_mat, display_labels=[0, 1])
     disp.plot(values_format='d')
     plt.savefig(cm_filename+'.png')
 
@@ -116,6 +121,8 @@ if args.use_gdc:
 
 run = 0
 seed = 0
+
+
 class Net(torch.nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -130,6 +137,7 @@ class Net(torch.nn.Module):
         x = F.dropout(x, training=self.training)
         final = self.conv2(x, edge_index, edge_weight)
         return final, F.log_softmax(final, dim=1)
+
 
 random.seed(seed)
 torch.manual_seed(seed)
@@ -149,6 +157,7 @@ print()
 print('Model', model)
 print('Optimizer', optimizer)
 
+
 def train():
     model.train()
     optimizer.zero_grad()
@@ -162,6 +171,7 @@ def train():
     total_loss.backward()
     optimizer.step()
 
+
 @torch.no_grad()
 def test():
     model.eval()
@@ -172,6 +182,7 @@ def test():
         accs.append(acc)
     return accs
 
+
 @torch.no_grad()
 def final_and_yyt_for_supervision():
     model.eval()
@@ -180,6 +191,7 @@ def final_and_yyt_for_supervision():
     Y = F.one_hot(pred).float()
     YYT = torch.matmul(Y, Y.T)
     return logits, YYT, final
+
 
 print("Start Training", run)
 print('===========================================================================================================')
@@ -198,10 +210,11 @@ print('Run', run, 'Val. Acc.', best_val_acc, 'Test Acc.', test_acc)
 print("Finished Training", run, '\n')
 input()
 
+
 def plot_tsne(tsne_x, tsne_y, fig_name, label_names=None):
     from sklearn.manifold import TSNE
     from matplotlib import pyplot as plt
-    
+
     if tsne_x.is_cuda:
         tsne_x = tsne_x.detach().cpu()
     if tsne_y.is_cuda:
@@ -211,14 +224,16 @@ def plot_tsne(tsne_x, tsne_y, fig_name, label_names=None):
 
     target_ids = range(len(tsne_y))
     if not label_names:
-        label_names = ['a', 'b', 'c', 'd', 'e', 'f', 'g'] 
+        label_names = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
 
     plt.figure(figsize=(6, 5))
     colors = 'r', 'g', 'b', 'c', 'y', 'orange', 'purple'
     for i, c, label in zip(target_ids, colors, label_names):
-        plt.scatter(X_2d[tsne_y == i, 0], X_2d[tsne_y == i, 1], c=c, s=3, label=label)
+        plt.scatter(X_2d[tsne_y == i, 0],
+                    X_2d[tsne_y == i, 1], c=c, s=3, label=label)
     plt.legend()
     plt.savefig(fig_name)
+
 
 prev_final, YYT, final_x = final_and_yyt_for_supervision()
 
@@ -229,10 +244,6 @@ print('A', A, A.shape)
 compare_topology(A, gold_A, cm_filename='main'+str(run))
 # plot_tsne(final_x, data.y, 'tsne_0.png')
 input()
-
-
-
-
 
 
 B, C = data.edge_index.clone(), data.edge_index.clone()
@@ -247,14 +258,14 @@ for run in range(0, 20):
         data.edge_index = B
     else:
         data.edge_index = C
-    
+
     class Net(torch.nn.Module):
         def __init__(self):
             super(Net, self).__init__()
             self.conv1 = GCN4Conv(dataset.num_features, 16, cached=True,
-                                normalize=not args.use_gdc)
+                                  normalize=not args.use_gdc)
             self.conv2 = GCNConv(16, dataset.num_classes, cached=True,
-                                normalize=not args.use_gdc)
+                                 normalize=not args.use_gdc)
 
         def forward(self):
             x, edge_index, edge_weight = data.x, data.edge_index, data.edge_attr
@@ -286,18 +297,20 @@ for run in range(0, 20):
         optimizer.zero_grad()
         final, logits = model()
 
-        task_loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
+        task_loss = F.nll_loss(
+            logits[data.train_mask], data.y[data.train_mask])
         print('Task loss', task_loss)
 
         link_loss = GCN4Conv.get_link_prediction_loss(model)
         print('Link loss', link_loss)
 
         # redundancy_loss = F.mse_loss(final, prev_final, reduction = 'mean')
-        redundancy_loss = F.kl_div(logits, prev_final, reduction = 'none', log_target = True).mean()
+        redundancy_loss = F.kl_div(
+            logits, prev_final, reduction='none', log_target=True).mean()
         #redundancy_loss = torch.distributions.kl.kl_divergence(logits, prev_final).sum(-1)
         print('Redundancy loss', redundancy_loss)
 
-        total_loss = 1 * task_loss +  1 * link_loss + 10 * redundancy_loss
+        total_loss = 1 * task_loss + 1 * link_loss + 10 * redundancy_loss
         print('Total loss', total_loss)
 
         total_loss.backward()
@@ -319,7 +332,7 @@ for run in range(0, 20):
         model.eval()
         final, logits = model()
         new_edge = model.conv1.cache["new_edge"]
-        new_edge = new_edge[:,:]
+        new_edge = new_edge[:, :]
         print('new_edge', new_edge, new_edge.shape)
         new_edge_temp1 = new_edge[0].unsqueeze(0)
         new_edge_temp2 = new_edge[1].unsqueeze(0)
@@ -334,12 +347,13 @@ for run in range(0, 20):
             print('C')
             C = torch.cat([C, new_edge], dim=1)
             C = torch.cat([C, new_edge_homo], dim=1)
-        print('data.num_edges', data.num_edges + new_edge_homo.size(1) + new_edge.size(1))
+        print('data.num_edges', data.num_edges +
+              new_edge_homo.size(1) + new_edge.size(1))
         pred = logits.max(1)[1]
         Y = F.one_hot(pred).float()
         YYT = torch.matmul(Y, Y.T)
         return logits, YYT, final
-    
+
     print("Start Training", run)
     print('===========================================================================================================')
     best_val_acc = test_acc = 0
@@ -361,7 +375,7 @@ for run in range(0, 20):
 
     prev_final, YYT, final_x = final_and_yyt_for_supervision()
     A = to_dense_adj(data.edge_index)[0]
-    A[A>1] = 1
+    A[A > 1] = 1
     # with open('newA_' + str(run) + '.pickle', 'wb') as f:
     #     pickle.dump(A, f)
     A.fill_diagonal_(1)
