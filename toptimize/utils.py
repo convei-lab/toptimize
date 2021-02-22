@@ -370,7 +370,7 @@ def log_hyperparameters(args, hyper_path):
         superprint(f'{key}: {val}', hyper_path)
 
 
-def log_step_perf(val_accs, test_accs, filename):
+def log_step_perf(val_accs, test_accs, noen_vals, noen_tests, filename):
 
     val_accs = np.array(val_accs)
     mean = round(np.mean(val_accs), 2)
@@ -380,7 +380,25 @@ def log_step_perf(val_accs, test_accs, filename):
     mean = round(np.mean(test_accs), 2)
     std = round(np.std(test_accs), 2)
 
-    superprint(f'Step Performance Summary {"="*40}', filename, overwrite=True)
+    superprint(
+        f'Step Performance Summary (Ensemble) {"="*40}', filename, overwrite=True)
+    superprint(f'Final Val. Acc.: {val_accs[-1]}', filename)
+    superprint(f'Final Test. Acc.: {test_accs[-1]}', filename)
+    superprint(f'Mean Val Acc: {mean} +/- {std}', filename)
+    superprint(f'Mean Test Acc: {mean} +/- {std}', filename)
+    superprint(f'Vals Accs: {val_accs}', filename)
+    superprint(f'Test Accs {test_accs}', filename)
+
+    val_accs = np.array(noen_vals)
+    mean = round(np.mean(noen_vals), 2)
+    std = round(np.std(noen_vals), 2)
+
+    test_accs = np.array(noen_tests)
+    mean = round(np.mean(noen_tests), 2)
+    std = round(np.std(noen_tests), 2)
+
+    superprint(
+        f'Step Performance Summary (No Ensemble){"="*40}', filename)
     superprint(f'Final Val. Acc.: {val_accs[-1]}', filename)
     superprint(f'Final Test. Acc.: {test_accs[-1]}', filename)
     superprint(f'Mean Val Acc: {mean} +/- {std}', filename)
