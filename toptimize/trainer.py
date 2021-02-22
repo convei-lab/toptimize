@@ -35,6 +35,7 @@ class Trainer():
     def train(self, step, total_epoch, lambda1, lambda2, link_pred=None, teacher=None, wnb_run=None):
 
         best_loss = 1e10
+        best_logit = 0
         self.final_model = self.model
 
         log_training(f'Start Training Step {step}', self.logfile)
@@ -65,6 +66,7 @@ class Trainer():
             if total_loss < best_loss:
                 best_loss = total_loss
                 test_acc = tmp_test_acc
+                best_logit = logit
                 log_text += ' (best epoch)'
                 self.cache_checkpoint(
                     self.model, logit, epoch, train_acc, val_acc, tmp_test_acc)
@@ -76,9 +78,10 @@ class Trainer():
         log_training(f'Finished Training Step {step}', self.logfile)
         log_training(
             f'Final Epoch {self.final_epoch} Train: {self.final_train_acc} Val: {self.final_val_acc} Test: {self.final_test_acc}', self.logfile)
+        
         log_training(f'', self.logfile)
 
-        return self.final_train_acc, self.final_val_acc, self.final_test_acc
+        return self.final_train_acc, self.final_val_acc, self.final_test_acc, best_logit
 
     def cache_checkpoint(self, model, logit, epoch, train_acc, val_acc, test_acc):
         self.checkpoint['model'] = model.state_dict()
@@ -119,17 +122,33 @@ class Trainer():
         return task_loss, link_loss, dist_loss
 
     @ torch.no_grad()
-    def test(self):
+    def test(self, ensemble=False, ensemble_logits=None):
         self.model.eval()
-        final, logit = self.model(
-            self.features, self.edge_index, self.edge_attr)
+        if ensemble == False:
+            final, logit = self.model(
+                self.features, self.edge_index, self.edge_attr)
 
-        accs = []
-        for mask in [self.train_mask, self.val_mask, self.test_mask]:
-            pred = logit[mask].max(1)[1]
-            acc = pred.eq(self.label[mask]).sum().item() / mask.sum().item()
-            acc = percentage(acc)
-            accs.append(acc)
+            accs = []
+            for mask in [self.train_mask, self.val_mask, self.test_mask]:
+                pred = logit[mask].max(1)[1]
+                acc = pred.eq(self.label[mask]).sum().item() / mask.sum().item()
+                acc = percentage(acc)
+                accs.append(acc)
+        else:
+            logits_sum = 0
+            for i in range(0,len(ensemble_logits)):
+                logits_sum += ensemble_logits[i]
+            logits = logits_sum / len(ensemble_logits)
+            accs = []
+            for mask in [self.train_mask, self.val_mask, self.test_mask]:
+                if mask.sum() == 0:
+                    accs.append(0)
+                else:
+                    pred = logits[mask].max(1)[1]
+                    acc = pred.eq(self.label[mask]).sum().item() / mask.sum().item()
+                    acc = percentage(acc)
+                    accs.append(acc)  
+
         return accs
 
     @ torch.no_grad()

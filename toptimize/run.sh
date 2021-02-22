@@ -4,11 +4,12 @@
 # python train.py seed2 -s 2 -b GCN -d Cora -r 20 -t 5 -l -w
 
 # GCN
+python train.py d_b0 -s 0 -b GCN -d Cora -r 100 -t 5 -dr
 
 # Drop Experiment (Best Epoch)
-python train.py d_b0 -s 0 -b GCN -d Cora -r 100 -t 5 -dr
-python train.py d_b1 -s 1 -b GCN -d Cora -r 100 -t 5 -dr
-python train.py d_b2 -s 2 -b GCN -d Cora -r 100 -t 5 -dr
+# python train.py d_b0 -s 0 -b GCN -d Cora -r 100 -t 5 -dr
+# python train.py d_b1 -s 1 -b GCN -d Cora -r 100 -t 5 -dr
+# python train.py d_b2 -s 2 -b GCN -d Cora -r 100 -t 5 -dr
 
 # Drop Experiment (Best Epoch)
 # python train.py d_b0 -s 0 -b GCN -d Citeseer -r 20 -t 5 -dr -w

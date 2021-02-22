@@ -137,7 +137,7 @@ for run in list(range(total_run)):
     ############## Training Our Model ################
     ##################################################
 
-    step_vals, step_tests = [], []
+    step_vals, step_tests, logits_list = [], [], []
     wnb_group_name = exp_alias + '_run' + \
         str(run) + '_' + wandb.util.generate_id()
 
