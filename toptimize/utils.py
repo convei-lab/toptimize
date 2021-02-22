@@ -70,13 +70,17 @@ def evaluate_experiment(step, final, label, adj, gold_adj, confmat_dir, topofig_
         perf_stat['step'] = step
         perf_stat['tp_gain'] = tp_gain
         perf_stat['fp_gain'] = fp_gain
-        perf_stat['tp_over_fp'] = round(tp_gain / fp_gain, 4)
         superprint(f"TP Gain: {perf_stat['tp_gain']}",
                    confmat_dir / ('confmat'+str(step)+'.txt'))
         superprint(f"FP Gain: {perf_stat['fp_gain']}",
                    confmat_dir / ('confmat'+str(step)+'.txt'))
-        superprint(f"Ratio: {perf_stat['tp_over_fp']}",
-                   confmat_dir / ('confmat'+str(step)+'.txt'))
+        try:
+            perf_stat['tp_over_fp'] = round(tp_gain / fp_gain, 4)
+            if perf_stat['tp_over_fp'] > 0:
+                superprint(f"Ratio: {perf_stat['tp_over_fp']}",
+                           confmat_dir / ('confmat'+str(step)+'.txt'))
+        except:
+            pass
 
     crossplot_topology(adj, gold_adj, label, topofig_dir /
                        ('topofig'+str(step)+'.png'))

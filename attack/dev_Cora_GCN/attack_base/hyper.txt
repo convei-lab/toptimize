@@ -7,7 +7,7 @@ total_epoch: 300
 seed: 0
 lambda1: 1
 lambda2: 10
-attack_ratio: 0.05
+ptb_ratio: 0.05
 use_last: False
 use_wnb: False
 use_gdc: False

@@ -12,7 +12,7 @@ from utils import (
 
 
 class Trainer():
-    def __init__(self, model, optimizer, data, device, trainlog_path, use_last_epoch):
+    def __init__(self, model, data, device, trainlog_path, use_last_epoch, optimizer=None):
         self.model = model
         self.optimizer = optimizer
         self.label = data.y
@@ -34,7 +34,7 @@ class Trainer():
 
     def train(self, step, total_epoch, lambda1, lambda2, link_pred=None, teacher=None, wnb_run=None):
 
-        best_val_acc = test_acc = 0
+        best_loss = 1e10
         self.final_model = self.model
 
         log_training(f'Start Training Step {step}', self.logfile)
@@ -54,7 +54,7 @@ class Trainer():
             self.optimizer.step()
 
             train_acc, val_acc, tmp_test_acc = self.test()
-            log_text = f'Epoch: {epoch} Train: {train_acc} Val: {val_acc} Test: {tmp_test_acc}'
+            log_text = f'Epoch: {epoch} Loss: {round(float(total_loss), 4)}  Train: {train_acc} Val: {val_acc} Test: {tmp_test_acc}'
 
             if wnb_run:
                 result = {'task_loss': task_loss, 'link_loss': link_loss,
@@ -62,8 +62,8 @@ class Trainer():
                           'train_acc': train_acc, 'val_acc': val_acc, 'test_acc': tmp_test_acc}
                 wnb_run.log(result)
 
-            if val_acc > best_val_acc:
-                best_val_acc = val_acc
+            if total_loss < best_loss:
+                best_loss = total_loss
                 test_acc = tmp_test_acc
                 log_text += ' (best epoch)'
                 self.cache_checkpoint(

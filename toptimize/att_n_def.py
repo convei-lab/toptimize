@@ -62,7 +62,7 @@ parser.add_argument('-e', '--total_epoch', default=300, type=int)
 parser.add_argument('-s', '--seed', default=0, type=int)
 parser.add_argument('-l1', '--lambda1', default=1, type=float)
 parser.add_argument('-l2', '--lambda2', default=10, type=float)
-parser.add_argument('-a', '--attack_ratio', default=0.05, type=float)
+parser.add_argument('-p', '--ptb_ratio', default=0.05, type=float)
 parser.add_argument('-l', '--use_last', action='store_true')
 parser.add_argument('-w', '--use_wnb', action='store_true')
 parser.add_argument('-g', '--use_gdc', action='store_true',
@@ -78,7 +78,7 @@ total_epoch = args.total_epoch
 seed = args.seed
 lambda1 = args.lambda1
 lambda2 = args.lambda2
-attack_ratio = args.attack_ratio
+ptb_ratio = args.ptb_ratio
 use_last_epoch = args.use_last
 use_wnb = args.use_wnb
 use_gdc = args.use_gdc
@@ -159,14 +159,22 @@ for attack_name in ['attack_base', 'attack_ours', 'cold_start']:
                 victim_checkpoint = torch.load(basemodel_path)
             elif attack_name == 'attack_ours':
                 victim_checkpoint = torch.load(ourmodel_path)
+            print('Attacking Topology:', attack_name)
+            print(victim_checkpoint['model'])
             victim_model.load_state_dict(victim_checkpoint['model'])
+            trainer = Trainer(victim_model, data, device,
+                              trainlog_path, use_last_epoch)
+            train_acc, val_acc, test_acc = trainer.test()
+            print('Original Acc', train_acc, val_acc, test_acc)
+
             victim_edge_index = victim_checkpoint['edge_index']
             victim_edge_attr = victim_checkpoint['edge_attr']
             victim_adj = to_dense_adj(
-                victim_edge_index, edge_attr=victim_edge_attr)[0]
-            n_perturbations = int(attack_ratio * data.edge_index.size(1))
+                data.edge_index, edge_attr=data.edge_attr)[0]
+            print('Adj', victim_adj.sum())
+            n_perturbations = int(args.ptb_ratio * (adj.sum()//2))
             model = PGDAttack(model=victim_model,
-                              nnodes=adj.shape[0],
+                              nnodes=victim_adj.shape[0],
                               loss_type='CE',
                               attack_structure=True,
                               attack_features=False,
@@ -174,19 +182,18 @@ for attack_name in ['attack_base', 'attack_ours', 'cold_start']:
             model.geometric_attack(data.x, victim_adj, data.y,
                                    data.train_mask, n_perturbations=n_perturbations)
             modified_adj = model.modified_adj
-            print('victim original_adj', victim_adj)
-            print('modified_adj', modified_adj)
-            print('diff sum', (modified_adj != victim_adj).sum())
+            print('Original_adj', victim_adj)
+            print('Modified_adj', modified_adj)
+            print('Diff sum', (modified_adj != victim_adj).sum())
             diff_idx = (modified_adj != victim_adj).nonzero(as_tuple=False)
-            print('diff', diff_idx)
-            # for (row, col) in diff_idx:
-            #     print('Different index: (', row.item(), str(col.item())+')', 'ori', victim_adj[row][col].item(
-            #     ), '->', modified_adj[row][col].item())
-            data.edge_index, data.edge_attr = dense_to_sparse(modified_adj)
-            input()
+            for i, (row, col) in enumerate(diff_idx):
+                if i < 10:
+                    print('Different index: (', str(row.item())+',', str(col.item())+')', 'ori', victim_adj[row][col].item(
+                    ), '->', modified_adj[row][col].item())
         elif attack_name == 'cold_start':
             pass
-
+        data.edge_index, data.edge_attr = dense_to_sparse(modified_adj)
+        adj = modified_adj
         ###################################################
         ############## Training Base Model ################
         ###################################################
@@ -215,7 +222,7 @@ for attack_name in ['attack_base', 'attack_ours', 'cold_start']:
             step, total_epoch, lambda1, lambda2)
         base_vals.append(val_acc)
         base_tests.append(test_acc)
-
+        input()
         final, logit = trainer.infer()
 
         perf_stat = evaluate_experiment(

@@ -119,8 +119,8 @@ for run in list(range(total_run)):
             model.parameters(), lr=0.005, weight_decay=5e-4)
     log_model_architecture(step, model, optimizer, archi_path, overwrite=True)
 
-    trainer = Trainer(model, optimizer, data, device,
-                      trainlog_path, use_last_epoch)
+    trainer = Trainer(model, data, device,
+                      trainlog_path, use_last_epoch, optimizer=optimizer)
     train_acc, val_acc, test_acc = trainer.train(
         step, total_epoch, lambda1, lambda2)
     base_vals.append(val_acc)
@@ -168,8 +168,8 @@ for run in list(range(total_run)):
             link_pred = GAT4ConvSIGIR
         log_model_architecture(step, model, optimizer, archi_path)
 
-        trainer = Trainer(model, optimizer, data, device,
-                          trainlog_path, use_last_epoch)
+        trainer = Trainer(model, data, device,
+                          trainlog_path, use_last_epoch, optimizer)
         train_acc, val_acc, test_acc = trainer.train(
             step, total_epoch, lambda1, lambda2, link_pred=link_pred, teacher=teacher, wnb_run=wnb_run)
 
