@@ -5,7 +5,25 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import numpy as np
 import os
-import wandb
+from torch_geometric.datasets import Planetoid
+import torch_geometric.transforms as T
+from shutil import rmtree
+import matplotlib
+
+
+def load_data(data_path, dataset_name, device, use_gdc):
+    # Data
+    dataset = Planetoid(data_path, dataset_name,
+                        transform=T.NormalizeFeatures())
+    data = dataset[0].to(device)
+    if use_gdc:
+        gdc = T.GDC(self_loop_weight=1, normalization_in='sym',
+                    normalization_out='col',
+                    diffusion_kwargs=dict(method='ppr', alpha=0.05),
+                    sparsification_kwargs=dict(method='topk', k=128,
+                                               dim=0), exact=True)
+        data = gdc(data)
+    return dataset, data
 
 
 def decorated_with(filename):
@@ -28,15 +46,46 @@ def decorated_with(filename):
     return decorator
 
 
-def safe_remove_file(filename):
-    if os.path.exists(filename):
-        os.remove(filename)
+def safe_remove_file(filepath):
+    if os.path.exists(filepath):
+        os.remove(filepath)
     else:
-        # print("Can not delete the file as it doesn't exists")
         pass
 
 
-def log_dataset_stat(dataset, data, filename):
+def safe_remove_dir(dirpath):
+    if os.path.exists(dirpath):
+        rmtree(dirpath)
+    else:
+        pass
+
+
+def evaluate_experiment(step, final, label, adj, gold_adj, confmat_dir, topofig_dir, tsne_dir, prev_stat=None):
+
+    perf_stat = compare_topology(
+        adj, gold_adj, confmat_dir/('confmat'+str(step)+'.txt'), confmat_dir/('confmat'+str(step)+'.png'))
+    if prev_stat:
+        tp_gain = perf_stat['tp'] - prev_stat['tp']
+        fp_gain = perf_stat['fp'] - prev_stat['fp']
+        perf_stat['step'] = step
+        perf_stat['tp_gain'] = tp_gain
+        perf_stat['fp_gain'] = fp_gain
+        perf_stat['tp_over_fp'] = round(tp_gain / fp_gain, 4)
+        superprint(f"TP Gain: {perf_stat['tp_gain']}",
+                   confmat_dir / ('confmat'+str(step)+'.txt'))
+        superprint(f"FP Gain: {perf_stat['fp_gain']}",
+                   confmat_dir / ('confmat'+str(step)+'.txt'))
+        superprint(f"Ratio: {perf_stat['tp_over_fp']}",
+                   confmat_dir / ('confmat'+str(step)+'.txt'))
+
+    crossplot_topology(adj, gold_adj, label, topofig_dir /
+                       ('topofig'+str(step)+'.png'))
+    plot_tsne(final, label, tsne_dir/('tsne_'+str(step)+'.png'))
+
+    return perf_stat
+
+
+def log_dataset_stat(dataset, filename):
     global print
     safe_remove_file(filename)
     log = decorated_with(filename)(print)
@@ -48,75 +97,48 @@ def log_dataset_stat(dataset, data, filename):
     log(f'Number of features: {dataset.num_features}')
     log(f'Number of classes: {dataset.num_classes}')
 
-    log(f'Data: {data}')
+    data = dataset[0]
+
+    log(f'Data 0: {data}')
     log('===========================================================================================================')
 
     # Gather some statistics about the graph.
     log(f'Number of nodes: {data.num_nodes}')
     log(f'Number of edges: {data.num_edges}')
     log(f'Average node degree: {data.num_edges / data.num_nodes:.2f}')
+    labeled_node_num = int(data.train_mask.sum() +
+                           data.val_mask.sum()+data.test_mask.sum())
+    log(f'Number of labeled nodes: {labeled_node_num}')
     log(f'Number of training nodes: {data.train_mask.sum()}')
+    log(f'Number of validation nodes: {data.val_mask.sum()}')
+    log(f'Number of test nodes: {data.test_mask.sum()}')
+    log(f'Node label rate: {int(labeled_node_num) / data.num_nodes:.2f}')
     log(f'Training node label rate: {int(data.train_mask.sum()) / data.num_nodes:.2f}')
+    log(f'Validation node label rate: {int(data.val_mask.sum()) / data.num_nodes:.2f}')
+    log(f'Test node label rate: {int(data.test_mask.sum()) / data.num_nodes:.2f}')
     log(f'Contains isolated nodes: {data.contains_isolated_nodes()}')
     log(f'Contains self-loops: {data.contains_self_loops()}')
     log(f'Is undirected: {data.is_undirected()}')
     log(f'Edge index: {data.edge_index} {data.edge_index.shape}')
+    log(f'Edge weight: {data.edge_attr}')
 
 
-def log_label_relation(data, filename):
-    global print
-    safe_remove_file(filename)
-    log = decorated_with(filename)(print)
-
-    log('Label Relation'+str('='*40))
-    A = to_dense_adj(data.edge_index)[0]
-    A.fill_diagonal_(1)
-    gold_Y = F.one_hot(data.y).float()
-    gold_A = torch.matmul(gold_Y, gold_Y.T)
-
-    sorted_gold_Y, sorted_Y_indices = torch.sort(data.y, descending=False)
-    sorted_gold_Y = F.one_hot(sorted_gold_Y).float()
-    sorted_gold_A = torch.matmul(sorted_gold_Y, sorted_gold_Y.T)
-
-    log(f'Original A: {A}')
-    log(f'Shape: {A.shape}\n')
-    log(f'Gold Label Y: {gold_Y}')
-    log(f'Shape: {gold_Y.shape}\n')
-    log(f'Transpose of Y: {gold_Y.T}')
-    log(f'Shape: {gold_Y.T.shape}\n')
-    log(f'Gold A: {gold_A}')
-    log(f'Shape: {gold_A.shape}\n')
-    log(f'Sorted gold Y: {sorted_gold_Y}')
-    log(f'Shape: {sorted_gold_Y.shape}\n')
-    log(f'Sorted gold Y indices: {sorted_Y_indices}')
-    log(f'Shape: {sorted_Y_indices.shape}\n')
-    log(f'Gold A: {sorted_gold_A}')
-    log(f'Shape: {sorted_gold_A.shape}')
-
-
-def log_training(log_text, filename):
+def log_training(log_text, filename, overwrite=False):
     global print
     log = decorated_with(filename)(print)
+
+    if overwrite:
+        safe_remove_file(filename)
     log(log_text)
 
 
-def save_model(model, final, edge_index, edge_weight, filename):
-    print('Saving Model '+str('='*40))
-    checkpoint = {}
-    checkpoint['model'] = model.state_dict()
-    checkpoint['final'] = final
-    checkpoint['edge_index'] = edge_index
-    checkpoint['edge_weight'] = edge_weight
-    torch.save(checkpoint, filename)
-
-    print('Saved as', filename)
-
-
-def log_model_architecture(model, optimizer, filename):
+def log_model_architecture(step, model, optimizer, filename, overwrite=False):
     global print
 
-    print('Model Architecture '+str('='*40))
+    if overwrite:
+        safe_remove_file(filename)
     log = decorated_with(filename)(print)
+    log(f'Model Architecture {step} {"="*40}')
     log(f'Model: {model}')
     log(f'Optimizer: {optimizer}')
     log(f'\n')
@@ -126,18 +148,20 @@ def percentage(float_zero_to_one):
     return round(float_zero_to_one * 100, 2)
 
 
-def compare_topology(pred_A, data, log_filename, fig_filename):
+def compare_topology(in_adj, gold_adj, log_filename, fig_filename):
     global print
     safe_remove_file(log_filename)
     log = decorated_with(log_filename)(print)
 
     print('Confusion Matrix '+str('='*40))
-    gold_Y = F.one_hot(data.y).float()
-    gold_A = torch.matmul(gold_Y, gold_Y.T)
 
-    flat_pred_A = pred_A.detach().cpu().view(-1)
-    flat_gold_A = gold_A.detach().cpu().view(-1)
-    conf_mat = confusion_matrix(y_true=flat_gold_A, y_pred=flat_pred_A)
+    adj = in_adj.clone()
+    adj.fill_diagonal_(1)
+
+    flat_adj = adj.detach().cpu().view(-1)
+    flat_gold_adj = gold_adj.detach().cpu().view(-1)
+    conf_mat = confusion_matrix(y_true=flat_gold_adj, y_pred=flat_adj)
+
     tn, fp, fn, tp = conf_mat.ravel()
     ppv = tp/(tp+fp)
     npv = tn/(tn+fn)
@@ -145,34 +169,35 @@ def compare_topology(pred_A, data, log_filename, fig_filename):
     tnr = tn/(tn+fp)
     f1 = 2*((ppv*tpr)/(ppv+tpr))
 
-    # Percentage
     ppv = percentage(ppv)
     npv = percentage(npv)
     tpr = percentage(tpr)
     tnr = percentage(tnr)
     f1 = percentage(f1)
 
-    log(f'Flatten A: {flat_pred_A}')
-    log(f'Shape: {flat_pred_A.shape}')
-    log(f'Number of Positive Prediction: {flat_pred_A.sum()} ({flat_pred_A.sum().true_divide(len(flat_pred_A))})')
-    log(f'Flatten Gold A: {flat_gold_A}')
-    log(f'Shape: {flat_gold_A.shape}')
-    log(f'Number of Positive Class: {flat_gold_A.sum()} ({flat_gold_A.sum().true_divide(len(flat_gold_A))})')
-    log(f'Confusion matrix: {conf_mat}')
-    log(f'Raveled Confusion Matrix: {conf_mat.ravel()}')
-    log(f'True Positive: {tp} # 1 -> 1')
-    log(f'False Positive: {fp} # 0 -> 1')
-    log(f'True Negative: {tn} # 0 -> 0')
-    log(f'False Negative: {fn} # 1 -> 0')
+    log(f'True Positive: {tp}')
+    log(f'False Positive: {fp}')
+    log(f'True Negative: {tn}')
+    log(f'False Negative: {fn}')
     log(f'Precision: {ppv}% # TP/(TP+FP)')
     log(f'Negative Predictive Value: {npv}% # TN/(TN+FN)')
     log(f'Recall: {tpr}% # TP/P')
     log(f'Selectivity: {tnr}% # TN/N')
     log(f'F1 Score: {f1}%')
+    # log(f'Confusion matrix: {conf_mat}')
+    # log(f'Raveled Confusion Matrix: {conf_mat.ravel()}')
 
+    edge_sum = flat_adj.sum()
+    gold_sum = flat_gold_adj.sum()
+    edge_ratio = round(float(edge_sum.div(gold_sum))*100, 2)
+    log(f'# Edge: {int(edge_sum)}')
+    log(f'# Gold Edge: {int(gold_sum)}')
+    log(f'# Edge over # Gold Edge: {edge_ratio}%')
     disp = ConfusionMatrixDisplay(
         confusion_matrix=conf_mat, display_labels=[0, 1])
+    matplotlib.use('Agg')
     disp.plot(values_format='d')
+
     plt.savefig(fig_filename)
     plt.clf()
     plt.cla()
@@ -235,8 +260,12 @@ def sort_topology(adj, sorted_Y_indices):
     return adj
 
 
-def plot_topology(adj, data, figname, sorting=False):
+def plot_topology(in_adj, data, figname, sorting=True):
     print('Plot Topology'+str('='*40))
+
+    adj = in_adj.clone()
+    adj.fill_diagonal_(1)
+
     from matplotlib import pyplot as plt
     fig = plt.gcf()
     DPI = fig.get_dpi()
@@ -264,8 +293,14 @@ def zero_to_nan(adj):
     return nan_adj
 
 
-def plot_sorted_topology_with_gold_topology(adj, gold_adj, data, figname, sorting=False):
-    print('Plot Sorted Topology With Gold Topology'+str('='*40))
+def crossplot_topology(in_adj, in_gold_adj, in_label, figname, sorting=True):
+    print('Crossplot Topology'+str('='*40))
+
+    adj = in_adj.clone()
+    gold_adj = in_gold_adj.clone()
+    label = in_label.clone()
+    adj.fill_diagonal_(1)
+
     from matplotlib import pyplot as plt
     fig = plt.gcf()
     DPI = fig.get_dpi()
@@ -277,7 +312,7 @@ def plot_sorted_topology_with_gold_topology(adj, gold_adj, data, figname, sortin
     gold_adj = numpy(gold_adj)
 
     if sorting:
-        sorted_gold_Y, sorted_Y_indices = torch.sort(data.y, descending=False)
+        sorted_gold_Y, sorted_Y_indices = torch.sort(label, descending=False)
         adj = sort_topology(adj, sorted_Y_indices)
         gold_adj = sort_topology(gold_adj, sorted_Y_indices)
 
@@ -304,9 +339,80 @@ def plot_sorted_topology_with_gold_topology(adj, gold_adj, data, figname, sortin
     print('Saved as', figname)
 
 
-def superprint(text, log_filename, append=False):
+def superprint(text, log_filename, overwrite=False):
     global print
-    if append:
+    if overwrite:
         safe_remove_file(log_filename)
     log = decorated_with(log_filename)(print)
     log(text)
+
+
+def cold_start():
+
+    # print('data.edge_index', data.edge_index, data.edge_index.shape)
+    # mask = torch.randint(0, 3 + 1, (1, data.edge_index.size(1)))[0]
+    # print('mask', mask, mask.shape)
+    # mask = mask >= 3
+    # print('mask', mask, mask.shape)
+    # data.edge_index = data.edge_index[:, mask]
+    # print('data.edge_index', data.edge_index, data.edge_index.shape)
+    pass
+
+
+def log_hyperparameters(args, hyper_path):
+    # Logging hyperparameters
+    safe_remove_file(hyper_path)
+    for key, val in args.__dict__.items():
+        superprint(f'{key}: {val}', hyper_path)
+
+
+def log_step_perf(val_accs, test_accs, filename):
+
+    val_accs = np.array(val_accs)
+    mean = round(np.mean(val_accs), 2)
+    std = round(np.std(val_accs), 2)
+
+    test_accs = np.array(test_accs)
+    mean = round(np.mean(test_accs), 2)
+    std = round(np.std(test_accs), 2)
+
+    superprint(f'Step Performance Summary {"="*40}', filename, overwrite=True)
+    superprint(f'Final Val. Acc.: {val_accs[-1]}', filename)
+    superprint(f'Final Test. Acc.: {test_accs[-1]}', filename)
+    superprint(f'Mean Val Acc: {mean} +/- {std}', filename)
+    superprint(f'Mean Test Acc: {mean} +/- {std}', filename)
+    superprint(f'Vals Accs: {val_accs}', filename)
+    superprint(f'Test Accs {test_accs}', filename)
+
+
+def log_run_perf(base_vals, base_tests, ours_vals, ours_tests, filename):
+    superprint(
+        f'Run Performance Comparision {"="*40}', filename, overwrite=True)
+
+    val_accs = np.array(base_vals)
+    mean = round(np.mean(base_vals), 2)
+    std = round(np.std(base_vals), 2)
+
+    test_accs = np.array(base_tests)
+    mean = round(np.mean(base_tests), 2)
+    std = round(np.std(base_tests), 2)
+
+    superprint(f'Baseline', filename, overwrite=True)
+    superprint(f'Mean Val Acc: {mean} +/- {std}', filename)
+    superprint(f'Mean Test Acc: {mean} +/- {std}', filename)
+    superprint(f'Vals Accs: {val_accs}', filename)
+    superprint(f'Test Accs {test_accs}', filename)
+
+    val_accs = np.array(ours_vals)
+    mean = round(np.mean(ours_vals), 2)
+    std = round(np.std(ours_vals), 2)
+
+    test_accs = np.array(ours_tests)
+    mean = round(np.mean(ours_tests), 2)
+    std = round(np.std(ours_tests), 2)
+
+    superprint(f'Ours', filename)
+    superprint(f'Mean Val Acc: {mean} +/- {std}', filename)
+    superprint(f'Mean Test Acc: {mean} +/- {std}', filename)
+    superprint(f'Vals Accs: {val_accs}', filename)
+    superprint(f'Test Accs {test_accs}', filename)
