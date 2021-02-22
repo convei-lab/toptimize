@@ -17,6 +17,7 @@ from utils import (
     log_run_perf,
     log_hyperparameters,
     cold_start,
+    superprint
 )
 from trainer import Trainer
 from model import GCN, GAT, OurGCN, OurGAT
@@ -90,8 +91,6 @@ for run in list(range(total_run)):
     hyper_path = exp_dir / 'hyper.txt'
     datastat_path = exp_dir / 'data_stat.txt'
     archi_path = exp_dir / 'model_archi.txt'
-    basemodel_path = run_dir / 'base_model.pt'
-    ourmodel_path = run_dir / 'our_model.pt'
     trainlog_path = run_dir / 'train_log.txt'
     step_perf_path = run_dir / 'step_perf.txt'
     run_perf_path = exp_dir / 'run_perf.txt'
@@ -137,13 +136,14 @@ for run in list(range(total_run)):
     perf_stat = evaluate_experiment(
         step, final, label, adj, gold_adj, confmat_dir, topofig_dir, tsne_dir)
 
-    trainer.save_model(basemodel_path, data)
+    trainer.save_model(run_dir / ('model_'+str(step)+'.pt'), data)
 
     ##################################################
     ############## Training Our Model ################
     ##################################################
 
     step_vals, step_tests = [], []
+    step_noen_vals, step_noen_tests = [], []
     wnb_group_name = exp_alias + '_run' + \
         str(run) + '_' + wandb.util.generate_id()
 
@@ -179,9 +179,12 @@ for run in list(range(total_run)):
         train_acc, val_acc, test_acc = trainer.train(
             step, total_epoch, lambda1, lambda2, link_pred=link_pred, teacher=teacher, use_last_epoch=use_last_epoch, use_loss_epoch=use_loss_epoch, wnb_run=wnb_run)
 
-        step_vals.append(val_acc)
-        step_tests.append(test_acc)
+        step_noen_vals.append(val_acc)
+        step_noen_tests.append(test_acc)
+        superprint(
+            f'Non Ensembled Train {train_acc} Val {val_acc} Test {test_acc}', trainlog_path)
 
+        # TODO check if logit in test func is identical to the infer's
         final, logit = trainer.infer()
         data.edge_index, data.edge_attr, adj = trainer.augment_topology(
             drop_edge=drop_edge)
@@ -189,7 +192,14 @@ for run in list(range(total_run)):
         perf_stat = evaluate_experiment(
             step, final, label, adj, gold_adj, confmat_dir, topofig_dir, tsne_dir, prev_stat)
 
-        trainer.save_model(ourmodel_path, trainer)
+        trainer.save_model(run_dir / ('model_'+str(step)+'.pt'), data)
+        train_acc, val_acc, test_acc = trainer.ensemble(run_dir)
+
+        superprint(
+            f'Ensembled Train {train_acc} Val {val_acc} Test {test_acc}', trainlog_path)
+
+        step_vals.append(val_acc)
+        step_tests.append(test_acc)
 
         if use_wnb:
             wnb_run.log(perf_stat)
@@ -205,6 +215,7 @@ for run in list(range(total_run)):
     our_vals.append(val_acc)
     our_tests.append(test_acc)
 
-    log_step_perf(step_vals, step_tests, step_perf_path)
+    log_step_perf(step_vals, step_tests, step_noen_vals,
+                  step_noen_tests, step_perf_path)
 
 log_run_perf(base_vals, base_tests, our_vals, our_tests, run_perf_path)
