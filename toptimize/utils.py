@@ -161,6 +161,9 @@ def compare_topology(in_adj, gold_adj, log_filename, fig_filename):
 
     adj = in_adj.clone()
     adj.fill_diagonal_(1)
+    gold_adj = gold_adj.clone()
+    print('adj.shape', adj.shape)
+    print('gold_adj.shape', gold_adj.shape)
 
     flat_adj = adj.detach().cpu().view(-1)
     flat_gold_adj = gold_adj.detach().cpu().view(-1)
@@ -351,16 +354,12 @@ def superprint(text, log_filename, overwrite=False):
     log(text)
 
 
-def cold_start():
+def cold_start(edge_index, ratio=1):
 
-    # print('data.edge_index', data.edge_index, data.edge_index.shape)
-    # mask = torch.randint(0, 3 + 1, (1, data.edge_index.size(1)))[0]
-    # print('mask', mask, mask.shape)
-    # mask = mask >= 3
-    # print('mask', mask, mask.shape)
-    # data.edge_index = data.edge_index[:, mask]
-    # print('data.edge_index', data.edge_index, data.edge_index.shape)
-    pass
+    mask = torch.rand((1, edge_index.size(1)))[0]
+    mask = mask <= ratio
+    edge_index = edge_index[:, mask]
+    return edge_index
 
 
 def log_hyperparameters(args, hyper_path):

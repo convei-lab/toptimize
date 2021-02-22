@@ -16,6 +16,7 @@ from utils import (
     log_step_perf,
     log_run_perf,
     log_hyperparameters,
+    cold_start,
 )
 from trainer import Trainer
 from model import GCN, GAT, OurGCN, OurGAT
@@ -31,6 +32,7 @@ parser.add_argument('-e', '--total_epoch', default=300, type=int)
 parser.add_argument('-s', '--seed', default=0, type=int)
 parser.add_argument('-l', '--lambda1', default=1, type=float)
 parser.add_argument('-k', '--lambda2', default=10, type=float)
+parser.add_argument('-c', '--cold_start_ratio', default=1.0, type=float)
 parser.add_argument('-a', '--use_last_epoch', action='store_true')
 parser.add_argument('-o', '--use_loss_epoch', action='store_true')
 parser.add_argument('-p', '--drop_edge', action='store_true')
@@ -48,6 +50,7 @@ total_epoch = args.total_epoch
 seed = args.seed
 lambda1 = args.lambda1
 lambda2 = args.lambda2
+cold_start_ratio = args.cold_start_ratio
 use_last_epoch = args.use_last_epoch
 use_loss_epoch = args.use_loss_epoch
 use_wnb = args.use_wnb
@@ -95,10 +98,11 @@ for run in list(range(total_run)):
 
     # Dataset
     dataset, data = load_data(dataset_path, dataset_name, device, use_gdc)
+    data.edge_index = cold_start(data.edge_index, ratio=cold_start_ratio)
     log_dataset_stat(dataset, datastat_path)
     label = data.y
     one_hot_label = F.one_hot(data.y).float()
-    adj = to_dense_adj(data.edge_index)[0]
+    adj = to_dense_adj(data.edge_index, max_num_nodes=data.num_nodes)[0]
     gold_adj = torch.matmul(one_hot_label, one_hot_label.T)
 
     log_hyperparameters(args, hyper_path)

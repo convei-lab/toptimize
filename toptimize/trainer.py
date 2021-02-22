@@ -20,7 +20,9 @@ class Trainer():
         self.features = data.x
         self.edge_index = data.edge_index
         self.edge_attr = data.edge_attr
-        self.adj = to_dense_adj(self.edge_index)[0]
+        self.max_num_nodes = data.num_nodes
+        self.adj = to_dense_adj(
+            self.edge_index, max_num_nodes=data.num_nodes)[0]
         self.gold_adj = torch.matmul(self.one_hot_label, self.one_hot_label.T)
         self.train_mask = data.train_mask
         self.val_mask = data.val_mask
@@ -77,18 +79,17 @@ class Trainer():
         if use_last_epoch:
             self.cache_checkpoint(
                 self.model, logit, epoch, total_loss, train_acc, val_acc, tmp_test_acc)
-        input()
         log_training(f"{'*'*40}", self.logfile)
         log_training(f'Finished Training Step {step}', self.logfile)
         log_training(
-            f'Final Epoch {self.final_epoch} Loss {self.final_total_loss} Train: {self.final_train_acc} Val: {self.final_val_acc} Test: {self.final_test_acc}', self.logfile)
+            f'Final Epoch {self.final_epoch} Loss {round(float(self.final_total_loss), 4)} Train: {self.final_train_acc} Val: {self.final_val_acc} Test: {self.final_test_acc}', self.logfile)
         log_training(f'', self.logfile)
 
         return self.final_train_acc, self.final_val_acc, self.final_test_acc
 
     def cache_checkpoint(self, model, logit, epoch, total_loss, train_acc, val_acc, test_acc):
         self.checkpoint['model'] = model.state_dict()
-        self.checkpoint['logit'] = logit.detach().clone()
+        self.checkpoint['logit'] = logit.clone().detach()
 
         self.final_epoch = epoch
         self.final_total_loss = total_loss
@@ -109,7 +110,8 @@ class Trainer():
     def save_model(self, filename, topo_holder):
         self.checkpoint['edge_index'] = topo_holder.edge_index
         self.checkpoint['edge_attr'] = topo_holder.edge_attr
-        self.checkpoint['adj'] = to_dense_adj(topo_holder.edge_index)[0]
+        self.checkpoint['adj'] = to_dense_adj(
+            topo_holder.edge_index, max_num_nodes=self.max_num_nodes)[0]
 
         print('Saving Model '+str('='*40))
         torch.save(self.checkpoint, filename)
@@ -158,7 +160,7 @@ class Trainer():
 
         # Addition & Reweight
         edge_index = torch.cat([edge_index, new_edge], dim=1)
-        adj = to_dense_adj(edge_index)[0]
+        adj = to_dense_adj(edge_index, max_num_nodes=self.max_num_nodes)[0]
         adj[adj > 1] = 1
 
         # Drop
