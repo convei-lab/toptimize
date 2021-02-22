@@ -29,10 +29,11 @@ parser.add_argument('-r', '--total_run', default=2, type=int)
 parser.add_argument('-t', '--total_step', default=5, type=int)
 parser.add_argument('-e', '--total_epoch', default=300, type=int)
 parser.add_argument('-s', '--seed', default=0, type=int)
-parser.add_argument('-l1', '--lambda1', default=1, type=float)
-parser.add_argument('-l2', '--lambda2', default=10, type=float)
-parser.add_argument('-l', '--use_last', action='store_true')
-parser.add_argument('-dr', '--drop_edge', action='store_true')
+parser.add_argument('-l', '--lambda1', default=1, type=float)
+parser.add_argument('-k', '--lambda2', default=10, type=float)
+parser.add_argument('-a', '--use_last_epoch', action='store_true')
+parser.add_argument('-o', '--use_loss_epoch', action='store_true')
+parser.add_argument('-p', '--drop_edge', action='store_true')
 parser.add_argument('-w', '--use_wnb', action='store_true')
 parser.add_argument('-g', '--use_gdc', action='store_true',
                     help='Use GDC preprocessing for GCN.')
@@ -47,7 +48,8 @@ total_epoch = args.total_epoch
 seed = args.seed
 lambda1 = args.lambda1
 lambda2 = args.lambda2
-use_last_epoch = args.use_last
+use_last_epoch = args.use_last_epoch
+use_loss_epoch = args.use_loss_epoch
 use_wnb = args.use_wnb
 drop_edge = args.drop_edge
 use_gdc = args.use_gdc
@@ -120,9 +122,9 @@ for run in list(range(total_run)):
     log_model_architecture(step, model, optimizer, archi_path, overwrite=True)
 
     trainer = Trainer(model, data, device,
-                      trainlog_path, use_last_epoch, optimizer=optimizer)
+                      trainlog_path, optimizer=optimizer)
     train_acc, val_acc, test_acc = trainer.train(
-        step, total_epoch, lambda1, lambda2)
+        step, 200, lambda1, lambda2, use_last_epoch=False, use_loss_epoch=False)
     base_vals.append(val_acc)
     base_tests.append(test_acc)
 
@@ -169,9 +171,9 @@ for run in list(range(total_run)):
         log_model_architecture(step, model, optimizer, archi_path)
 
         trainer = Trainer(model, data, device,
-                          trainlog_path, use_last_epoch, optimizer)
+                          trainlog_path, optimizer)
         train_acc, val_acc, test_acc = trainer.train(
-            step, total_epoch, lambda1, lambda2, link_pred=link_pred, teacher=teacher, wnb_run=wnb_run)
+            step, total_epoch, lambda1, lambda2, link_pred=link_pred, teacher=teacher, use_last_epoch=use_last_epoch, use_loss_epoch=use_loss_epoch, wnb_run=wnb_run)
 
         step_vals.append(val_acc)
         step_tests.append(test_acc)

@@ -12,7 +12,7 @@ from utils import (
 
 
 class Trainer():
-    def __init__(self, model, data, device, trainlog_path, use_last_epoch, optimizer=None):
+    def __init__(self, model, data, device, trainlog_path, optimizer=None):
         self.model = model
         self.optimizer = optimizer
         self.label = data.y
@@ -27,15 +27,14 @@ class Trainer():
         self.test_mask = data.test_mask
         self.device = device
         self.logfile = trainlog_path
-        self.use_last_epoch = use_last_epoch
 
         self.checkpoint = {}
         self.final_model = None
 
-    def train(self, step, total_epoch, lambda1, lambda2, link_pred=None, teacher=None, wnb_run=None):
+    def train(self, step, total_epoch, lambda1, lambda2, link_pred=None, teacher=None, use_last_epoch=False, use_loss_epoch=False, wnb_run=None):
 
-        best_loss = 1e10
         best_logit = 0
+        best_loss, best_acc = 1e10, 0
         self.final_model = self.model
 
         log_training(f'Start Training Step {step}', self.logfile)
@@ -62,31 +61,38 @@ class Trainer():
                           'dist_loss': dist_loss, 'total_loss': total_loss,
                           'train_acc': train_acc, 'val_acc': val_acc, 'test_acc': tmp_test_acc}
                 wnb_run.log(result)
-
-            if total_loss < best_loss:
-                best_loss = total_loss
-                test_acc = tmp_test_acc
-                best_logit = logit
-                log_text += ' (best epoch)'
-                self.cache_checkpoint(
-                    self.model, logit, epoch, train_acc, val_acc, tmp_test_acc)
+            if use_loss_epoch:
+                if total_loss < best_loss:
+                    best_loss = total_loss
+                    log_text += ' (best epoch)'
+                    self.cache_checkpoint(
+                        self.model, logit, epoch, total_loss, train_acc, val_acc, tmp_test_acc)
+            else:
+                if val_acc > best_acc:
+                    best_acc = val_acc
+                    test_acc = tmp_test_acc
+                    log_text += ' (best epoch)'
+                    self.cache_checkpoint(
+                        self.model, logit, epoch, total_loss, train_acc, val_acc, tmp_test_acc)
             log_training(log_text, self.logfile)
-        if self.use_last_epoch:
+        if use_last_epoch:
             self.cache_checkpoint(
-                self.model, logit, epoch, train_acc, val_acc, tmp_test_acc)
+                self.model, logit, epoch, total_loss, train_acc, val_acc, tmp_test_acc)
+        input()
         log_training(f"{'*'*40}", self.logfile)
         log_training(f'Finished Training Step {step}', self.logfile)
         log_training(
-            f'Final Epoch {self.final_epoch} Train: {self.final_train_acc} Val: {self.final_val_acc} Test: {self.final_test_acc}', self.logfile)
-        
+            f'Final Epoch {self.final_epoch} Loss {self.final_total_loss} Train: {self.final_train_acc} Val: {self.final_val_acc} Test: {self.final_test_acc}', self.logfile)
         log_training(f'', self.logfile)
 
         return self.final_train_acc, self.final_val_acc, self.final_test_acc, best_logit
 
-    def cache_checkpoint(self, model, logit, epoch, train_acc, val_acc, test_acc):
+    def cache_checkpoint(self, model, logit, epoch, total_loss, train_acc, val_acc, test_acc):
         self.checkpoint['model'] = model.state_dict()
         self.checkpoint['logit'] = logit.detach().clone()
+
         self.final_epoch = epoch
+        self.final_total_loss = total_loss
         self.final_train_acc = train_acc
         self.final_val_acc = val_acc
         self.final_test_acc = test_acc
@@ -94,7 +100,6 @@ class Trainer():
         try:
             self.final_model = deepcopy(model)
         except Exception as e:
-            # print('Error while caching final model')
             final_model = model.__class__(
                 model.nfeat, model.hidden_sizes, model.nclass).to(self.device)
             final_model.load_state_dict(model.state_dict())
