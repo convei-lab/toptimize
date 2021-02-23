@@ -4,8 +4,9 @@
 # python train.py seed2 -s 2 -b GCN -d Cora -r 20 -t 5 -l -w
 
 # GCN
-python train.py drop -s 0 -b GCN -d Pubmed -r 5 -t 5 -p
-python train.py no_drop -s 0 -b GCN -d Pubmed -r 5 -t 5
+python train.py no_drop_lr0.02 -s 0 -b GCN -d Cora -r 20 -m 10
+# python train.py drop_alpha10 -s 0 -b GCN -d Cora -r 20 -m 10 -p
+# python train.py drop_alpha9 -s 0 -b GCN -d Cora -r 20 -m 9 -p
 
 # Drop Experiment (Best Epoch)
 # python train.py d_b0 -s 0 -b GCN -d Cora -r 100 -t 5 -dr
