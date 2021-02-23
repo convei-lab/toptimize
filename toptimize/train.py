@@ -33,7 +33,10 @@ parser.add_argument('-e', '--total_epoch', default=300, type=int)
 parser.add_argument('-s', '--seed', default=0, type=int)
 parser.add_argument('-l', '--lambda1', default=1, type=float)
 parser.add_argument('-k', '--lambda2', default=10, type=float)
+parser.add_argument('-m', '--alpha', default=10, type=float)
+parser.add_argument('-n', '--beta', default=-3, type=float)
 parser.add_argument('-c', '--cold_start_ratio', default=1.0, type=float)
+parser.add_argument('-x', '--eval_topo', action='store_true')
 parser.add_argument('-a', '--use_last_epoch', action='store_true')
 parser.add_argument('-o', '--use_loss_epoch', action='store_true')
 parser.add_argument('-p', '--drop_edge', action='store_true')
@@ -51,6 +54,9 @@ total_epoch = args.total_epoch
 seed = args.seed
 lambda1 = args.lambda1
 lambda2 = args.lambda2
+alpha = args.alpha
+beta = args.beta
+eval_topo = args.eval_topo
 cold_start_ratio = args.cold_start_ratio
 use_last_epoch = args.use_last_epoch
 use_loss_epoch = args.use_loss_epoch
@@ -69,8 +75,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 base_vals, base_tests = [], []
 our_vals, our_tests = [], []
 
-exp_name = exp_alias + '_' + dataset_name + '_' + basemodel_name
 cur_dir = Path(__file__).resolve().parent
+exp_name = exp_alias + '_' + dataset_name + '_' + basemodel_name
 exp_dir = (cur_dir.parent / 'experiment' / exp_name).resolve()
 safe_remove_dir(exp_dir)
 
@@ -133,8 +139,9 @@ for run in list(range(total_run)):
 
     final, logit = trainer.infer()
 
-    perf_stat = evaluate_experiment(
-        step, final, label, adj, gold_adj, confmat_dir, topofig_dir, tsne_dir)
+    if eval_topo:
+        perf_stat = evaluate_experiment(
+            step, final, label, adj, gold_adj, confmat_dir, topofig_dir, tsne_dir)
 
     trainer.save_model(run_dir / ('model_'+str(step)+'.pt'), data)
 
@@ -147,10 +154,10 @@ for run in list(range(total_run)):
     wnb_group_name = exp_alias + '_run' + \
         str(run) + '_' + wandb.util.generate_id()
 
-    alpha, omega = 10, -3
     for step in range(1, total_step + 1):
         teacher = trainer.checkpoint['logit']
-        prev_stat = perf_stat
+        if eval_topo:
+            prev_stat = perf_stat
 
         wnb_run = None
         if use_wnb:
@@ -160,7 +167,7 @@ for run in list(range(total_run)):
 
         if basemodel_name == 'GCN':
             model = OurGCN(dataset.num_features, 16,
-                           dataset.num_classes, alpha=alpha, omega=omega).to(device)
+                           dataset.num_classes, alpha=alpha, beta=beta).to(device)
             optimizer = torch.optim.Adam([
                 dict(params=model.conv1.parameters(), weight_decay=5e-4),
                 dict(params=model.conv2.parameters(), weight_decay=0)
@@ -168,7 +175,7 @@ for run in list(range(total_run)):
             link_pred = GCN4ConvSIGIR
         else:
             model = OurGAT(dataset.num_features, 8,
-                           dataset.num_classes, alpha=alpha, omega=omega).to(device)
+                           dataset.num_classes, alpha=alpha, beta=beta).to(device)
             optimizer = torch.optim.Adam(
                 model.parameters(), lr=0.005, weight_decay=5e-4)
             link_pred = GAT4ConvSIGIR
@@ -189,8 +196,9 @@ for run in list(range(total_run)):
         data.edge_index, data.edge_attr, adj = trainer.augment_topology(
             drop_edge=drop_edge)
 
-        perf_stat = evaluate_experiment(
-            step, final, label, adj, gold_adj, confmat_dir, topofig_dir, tsne_dir, prev_stat)
+        if eval_topo:
+            perf_stat = evaluate_experiment(
+                step, final, label, adj, gold_adj, confmat_dir, topofig_dir, tsne_dir, prev_stat)
 
         trainer.save_model(run_dir / ('model_'+str(step)+'.pt'), data)
         train_acc, val_acc, test_acc = trainer.ensemble(run_dir)
@@ -202,9 +210,10 @@ for run in list(range(total_run)):
         step_tests.append(test_acc)
 
         if use_wnb:
-            wnb_run.log(perf_stat)
-            for key, val in perf_stat.items():
-                wandb.run.summary[key] = val
+            if eval_topo:
+                wnb_run.log(perf_stat)
+                for key, val in perf_stat.items():
+                    wandb.run.summary[key] = val
             wandb.run.summary['train_acc'] = train_acc
             wandb.run.summary['val_acc'] = val_acc
             wandb.run.summary['test_acc'] = test_acc

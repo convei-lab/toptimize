@@ -58,13 +58,13 @@ class GAT(torch.nn.Module):
 
 
 class OurGCN(torch.nn.Module):
-    def __init__(self, nfeat, hidden_sizes, nclass, alpha=10, omega=-3, use_gdc=False):
+    def __init__(self, nfeat, hidden_sizes, nclass, alpha=10, beta=-3, use_gdc=False):
         super(OurGCN, self).__init__()
         self.nfeat = nfeat
         self.hidden_sizes = hidden_sizes
         self.nclass = nclass
         self.conv1 = GCN4ConvSIGIR(
-            nfeat, hidden_sizes, cached=True, alpha=alpha, omega=omega, normalize=not use_gdc)
+            nfeat, hidden_sizes, cached=True, alpha=alpha, beta=beta, normalize=not use_gdc)
         self.conv2 = GCNConv(hidden_sizes, nclass,
                              cached=True, normalize=not use_gdc)
 
@@ -76,7 +76,7 @@ class OurGCN(torch.nn.Module):
 
 
 class OurGAT(torch.nn.Module):
-    def __init__(self, nfeat, hidden_sizes, nclass, alpha=10, omega=-3, nhead=8, dropout=0.6):
+    def __init__(self, nfeat, hidden_sizes, nclass, alpha=10, beta=-3, nhead=8, dropout=0.6):
         super(OurGAT, self).__init__()
         self.nfeat = nfeat
         self.hidden_sizes = hidden_sizes
@@ -84,7 +84,7 @@ class OurGAT(torch.nn.Module):
         self.nhead = nhead
         self.dropout = dropout
         self.conv1 = GAT4ConvSIGIR(
-            nfeat, hidden_sizes, alpha=alpha, omega=omega, heads=nhead, dropout=dropout)
+            nfeat, hidden_sizes, alpha=alpha, beta=beta, heads=nhead, dropout=dropout)
         # On the Pubmed dataset, use heads=8 in conv2.
         self.conv2 = GATConv(hidden_sizes * nhead, nclass, heads=1, concat=False,
                              dropout=dropout)

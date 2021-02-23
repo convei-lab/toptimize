@@ -162,8 +162,6 @@ def compare_topology(in_adj, gold_adj, log_filename, fig_filename):
     adj = in_adj.clone()
     adj.fill_diagonal_(1)
     gold_adj = gold_adj.clone()
-    print('adj.shape', adj.shape)
-    print('gold_adj.shape', gold_adj.shape)
 
     flat_adj = adj.detach().cpu().view(-1)
     flat_gold_adj = gold_adj.detach().cpu().view(-1)
@@ -437,3 +435,41 @@ def log_run_perf(base_vals, base_tests, ours_vals, ours_tests, filename):
     superprint(f'Mean Test Acc: {mean} +/- {std}', filename)
     superprint(f'Vals Accs: {val_accs}', filename)
     superprint(f'Test Accs {test_accs}', filename)
+
+
+def pgd_attack(model_path, model):
+    vcheckpoint = torch.load(model_path)
+    print('Attacking Topology:', model_path)
+    print(vcheckpoint['model'])
+    victim_model.load_state_dict(victim_checkpoint['model'])
+    trainer = Trainer(victim_model, data, device,
+                      trainlog_path, use_last_epoch)
+    train_acc, val_acc, test_acc = trainer.test()
+    print('Original Acc', train_acc, val_acc, test_acc)
+
+    victim_edge_index = victim_checkpoint['edge_index']
+    victim_edge_attr = victim_checkpoint['edge_attr']
+    victim_adj = to_dense_adj(
+        data.edge_index, edge_attr=data.edge_attr)[0]
+    print('Adj', victim_adj.sum())
+    n_perturbations = int(args.ptb_ratio * (adj.sum()//2))
+    model = PGDAttack(model=victim_model,
+                      nnodes=victim_adj.shape[0],
+                      loss_type='CE',
+                      attack_structure=True,
+                      attack_features=False,
+                      device=device).to(device)
+    model.geometric_attack(data.x, victim_adj, data.y,
+                           data.train_mask, n_perturbations=n_perturbations)
+    modified_adj = model.modified_adj
+    print('Original_adj', victim_adj)
+    print('Modified_adj', modified_adj)
+    print('Diff sum', (modified_adj != victim_adj).sum())
+    diff_idx = (modified_adj != victim_adj).nonzero(as_tuple=False)
+    for i, (row, col) in enumerate(diff_idx):
+        if i < 10:
+            print('Different index: (', str(row.item())+',', str(col.item())+')', 'ori', victim_adj[row][col].item(
+            ), '->', modified_adj[row][col].item())
+
+    data.edge_index, data.edge_attr = dense_to_sparse(modified_adj)
+    adj = modified_adj
