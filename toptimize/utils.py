@@ -9,6 +9,10 @@ from torch_geometric.datasets import Planetoid
 import torch_geometric.transforms as T
 from shutil import rmtree
 import matplotlib
+from deeprobust.graph.data import Dataset
+from deeprobust.graph.defense import GCN
+from deeprobust.graph.global_attack import PGDAttack
+from deeprobust.graph.utils import preprocess
 
 
 def load_data(data_path, dataset_name, device, use_gdc):
@@ -437,16 +441,18 @@ def log_run_perf(base_vals, base_tests, ours_vals, ours_tests, filename):
     superprint(f'Test Accs {test_accs}', filename)
 
 
-def pgd_attack(model_path, model):
-    vcheckpoint = torch.load(model_path)
-    print('Attacking Topology:', model_path)
-    print(vcheckpoint['model'])
-    victim_model.load_state_dict(victim_checkpoint['model'])
-    trainer = Trainer(victim_model, data, device,
-                      trainlog_path, use_last_epoch)
-    train_acc, val_acc, test_acc = trainer.test()
+def pgd_attack(model, checkpoint_path, data, device, trainlog_path):
+    checkpoint = torch.load(checkpoint_path)
+    print('Attacking Topology:', checkpoint_path)
+    print(checkpoint['model'])
+    print(checkpoint['logit'])
+    model.load_state_dict(checkpoint['model'])
+    from trainer import Trainer
+    trainer = Trainer(model, data, device,
+                      trainlog_path)
+    (train_acc, val_acc, test_acc), logit = trainer.test()
     print('Original Acc', train_acc, val_acc, test_acc)
-
+    input()
     victim_edge_index = victim_checkpoint['edge_index']
     victim_edge_attr = victim_checkpoint['edge_attr']
     victim_adj = to_dense_adj(
