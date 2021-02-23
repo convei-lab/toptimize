@@ -130,8 +130,7 @@ for run in list(range(total_run)):
             model.parameters(), lr=0.005, weight_decay=5e-4)
     log_model_architecture(step, model, optimizer, archi_path, overwrite=True)
 
-    trainer = Trainer(model, data, device,
-                      trainlog_path, optimizer=optimizer)
+    trainer = Trainer(model, data, device, trainlog_path, optimizer=optimizer)
     train_acc, val_acc, test_acc = trainer.fit(
         step, 200, lambda1, lambda2, use_last_epoch=False, use_loss_epoch=False)
     base_vals.append(val_acc)
@@ -139,7 +138,7 @@ for run in list(range(total_run)):
 
     # final, logit = trainer.infer()
 
-    if eval_topo:
+    if eval_topo:         # TODO check if logit in test func is identical to the infer's
         perf_stat = evaluate_experiment(
             step, final, label, adj, gold_adj, confmat_dir, topofig_dir, tsne_dir)
 
@@ -191,7 +190,6 @@ for run in list(range(total_run)):
         superprint(
             f'Non Ensembled Train {train_acc} Val {val_acc} Test {test_acc}', trainlog_path)
 
-        # TODO check if logit in test func is identical to the infer's
         # final, logit = trainer.infer()
         data.edge_index, data.edge_attr, adj = trainer.augment_topology(
             drop_edge=drop_edge)

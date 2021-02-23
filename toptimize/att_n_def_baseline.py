@@ -45,7 +45,7 @@ if device != 'cpu':
 
 # data = Dataset(root='/tmp/', name=args.dataset, setting='nettack')
 
-our_data = 1
+our_data = 0
 # Dataset
 if our_data:
     dataset_name = 'Cora'

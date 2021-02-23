@@ -58,13 +58,13 @@ class GAT(torch.nn.Module):
 
 
 class OurGCN(torch.nn.Module):
-    def __init__(self, nfeat, hidden_sizes, nclass, alpha=10, beta=-3, use_gdc=False):
+    def __init__(self, nfeat, hidden_sizes, nclass, alpha=10, beta=-3, cached=True, use_gdc=False):
         super(OurGCN, self).__init__()
         self.nfeat = nfeat
         self.hidden_sizes = hidden_sizes
         self.nclass = nclass
         self.conv1 = GCN4ConvSIGIR(
-            nfeat, hidden_sizes, cached=True, alpha=alpha, beta=beta, normalize=not use_gdc)
+            nfeat, hidden_sizes, cached=cached, alpha=alpha, beta=beta, normalize=not use_gdc)
         self.conv2 = GCNConv(hidden_sizes, nclass,
                              cached=True, normalize=not use_gdc)
 
@@ -73,6 +73,10 @@ class OurGCN(torch.nn.Module):
         x = F.dropout(x, training=self.training)
         final = self.conv2(x, edge_index, edge_attr)
         return final, F.log_softmax(final, dim=1)
+
+    def reset_cached(self):
+        self.conv1._cached_adj_t = None
+        self.conv1._cached_edge_index = None
 
 
 class OurGAT(torch.nn.Module):

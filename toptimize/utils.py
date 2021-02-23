@@ -13,6 +13,7 @@ from deeprobust.graph.data import Dataset
 from deeprobust.graph.defense import GCN
 from deeprobust.graph.global_attack import PGDAttack
 from deeprobust.graph.utils import preprocess
+from torch_geometric.utils.sparse import dense_to_sparse
 
 
 def load_data(data_path, dataset_name, device, use_gdc):
@@ -93,7 +94,7 @@ def evaluate_experiment(step, final, label, adj, gold_adj, confmat_dir, topofig_
     return perf_stat
 
 
-def log_dataset_stat(dataset, filename):
+def log_dataset_stat(data, dataset, filename):
     global print
     safe_remove_file(filename)
     log = decorated_with(filename)(print)
@@ -104,8 +105,6 @@ def log_dataset_stat(dataset, filename):
     log(f'Number of graphs: {len(dataset)}')
     log(f'Number of features: {dataset.num_features}')
     log(f'Number of classes: {dataset.num_classes}')
-
-    data = dataset[0]
 
     log(f'Data 0: {data}')
     log('===========================================================================================================')
@@ -441,41 +440,48 @@ def log_run_perf(base_vals, base_tests, ours_vals, ours_tests, filename):
     superprint(f'Test Accs {test_accs}', filename)
 
 
-def pgd_attack(model, checkpoint_path, data, device, trainlog_path):
+def pgd_attack(model, checkpoint_path, data, device, trainlog_path, ptb_rate=0.05):
     checkpoint = torch.load(checkpoint_path)
     print('Attacking Topology:', checkpoint_path)
-    print(checkpoint['model'])
-    print(checkpoint['logit'])
-    model.load_state_dict(checkpoint['model'])
+
     from trainer import Trainer
+    model.load_state_dict(checkpoint['model'])
     trainer = Trainer(model, data, device,
                       trainlog_path)
     (train_acc, val_acc, test_acc), logit = trainer.test()
-    print('Original Acc', train_acc, val_acc, test_acc)
-    input()
-    victim_edge_index = victim_checkpoint['edge_index']
-    victim_edge_attr = victim_checkpoint['edge_attr']
-    victim_adj = to_dense_adj(
-        data.edge_index, edge_attr=data.edge_attr)[0]
-    print('Adj', victim_adj.sum())
-    n_perturbations = int(args.ptb_ratio * (adj.sum()//2))
-    model = PGDAttack(model=victim_model,
-                      nnodes=victim_adj.shape[0],
+    print('GNN(X, A)', train_acc, val_acc, test_acc)
+
+    data.edge_index = checkpoint['edge_index']
+    data.edge_attr = checkpoint['edge_attr']
+    model.load_state_dict(checkpoint['model'])
+    trainer = Trainer(model, data, device,
+                      trainlog_path)
+    (train_acc, val_acc, test_acc), logit = trainer.test()
+    print("GNN(X, A')", train_acc, val_acc, test_acc)
+
+    edge_index = checkpoint['edge_index']
+    edge_attr = checkpoint['edge_attr']
+    adj = to_dense_adj(edge_index, edge_attr=edge_attr,
+                       max_num_nodes=data.num_nodes)[0]
+    n_perturbations = int(ptb_rate * (adj.sum()//2))
+    model = PGDAttack(model=model,
+                      nnodes=adj.shape[0],
                       loss_type='CE',
                       attack_structure=True,
                       attack_features=False,
                       device=device).to(device)
-    model.geometric_attack(data.x, victim_adj, data.y,
+    model.geometric_attack(data.x, adj, data.y,
                            data.train_mask, n_perturbations=n_perturbations)
     modified_adj = model.modified_adj
-    print('Original_adj', victim_adj)
+    print('Original_adj', adj)
     print('Modified_adj', modified_adj)
-    print('Diff sum', (modified_adj != victim_adj).sum())
-    diff_idx = (modified_adj != victim_adj).nonzero(as_tuple=False)
+    print('Diff sum', (modified_adj != adj).sum())
+    diff_idx = (modified_adj != adj).nonzero(as_tuple=False)
     for i, (row, col) in enumerate(diff_idx):
         if i < 10:
-            print('Different index: (', str(row.item())+',', str(col.item())+')', 'ori', victim_adj[row][col].item(
+            print('Different index: (', str(row.item())+',', str(col.item())+')', 'ori', adj[row][col].item(
             ), '->', modified_adj[row][col].item())
 
-    data.edge_index, data.edge_attr = dense_to_sparse(modified_adj)
-    adj = modified_adj
+    return modified_adj
+
+def eval_new_edge(new)
