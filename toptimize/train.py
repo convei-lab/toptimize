@@ -132,12 +132,12 @@ for run in list(range(total_run)):
 
     trainer = Trainer(model, data, device,
                       trainlog_path, optimizer=optimizer)
-    train_acc, val_acc, test_acc = trainer.train(
+    train_acc, val_acc, test_acc = trainer.fit(
         step, 200, lambda1, lambda2, use_last_epoch=False, use_loss_epoch=False)
     base_vals.append(val_acc)
     base_tests.append(test_acc)
 
-    final, logit = trainer.infer()
+    # final, logit = trainer.infer()
 
     if eval_topo:
         perf_stat = evaluate_experiment(
@@ -183,7 +183,7 @@ for run in list(range(total_run)):
 
         trainer = Trainer(model, data, device,
                           trainlog_path, optimizer)
-        train_acc, val_acc, test_acc = trainer.train(
+        train_acc, val_acc, test_acc = trainer.fit(
             step, total_epoch, lambda1, lambda2, link_pred=link_pred, teacher=teacher, use_last_epoch=use_last_epoch, use_loss_epoch=use_loss_epoch, wnb_run=wnb_run)
 
         step_noen_vals.append(val_acc)
@@ -192,7 +192,7 @@ for run in list(range(total_run)):
             f'Non Ensembled Train {train_acc} Val {val_acc} Test {test_acc}', trainlog_path)
 
         # TODO check if logit in test func is identical to the infer's
-        final, logit = trainer.infer()
+        # final, logit = trainer.infer()
         data.edge_index, data.edge_attr, adj = trainer.augment_topology(
             drop_edge=drop_edge)
 

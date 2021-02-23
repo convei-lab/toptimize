@@ -33,7 +33,7 @@ class Trainer():
         self.checkpoint = {}
         self.final_model = None
 
-    def train(self, step, total_epoch, lambda1, lambda2, link_pred=None, teacher=None, use_last_epoch=False, use_loss_epoch=False, wnb_run=None):
+    def fit(self, step, total_epoch, lambda1, lambda2, link_pred=None, teacher=None, use_last_epoch=False, use_loss_epoch=False, wnb_run=None):
         best_loss, best_acc = 1e10, 0
         self.final_model = self.duplicate(self.model)
 
@@ -103,7 +103,8 @@ class Trainer():
 
         self.checkpoint['model'] = deepcopy(self.final_model.state_dict())
         self.checkpoint['logit'] = logit.clone().detach()
-
+        print('AAA 1', self.checkpoint['model'])
+        print('SSS 1', self.checkpoint['logit'])
         self.final_epoch = epoch
         self.final_total_loss = total_loss
         self.final_train_acc = train_acc
@@ -111,11 +112,12 @@ class Trainer():
         self.final_test_acc = test_acc
 
     def save_model(self, filename, topo_holder):
-        self.checkpoint['edge_index'] = topo_holder.edge_index
-        self.checkpoint['edge_attr'] = topo_holder.edge_attr
+        self.checkpoint['edge_index'] = topo_holder.edge_index.clone().detach()
+        self.checkpoint['edge_attr'] = topo_holder.edge_attr if topo_holder.edge_attr is not None else None
         self.checkpoint['adj'] = to_dense_adj(
-            topo_holder.edge_index, max_num_nodes=self.max_num_nodes)[0]
-
+            topo_holder.edge_index, max_num_nodes=self.max_num_nodes)[0].clone().detach()
+        print('AAA 2', self.checkpoint['model'])
+        print('SSS 2', self.checkpoint['logit'])
         print('Saving Model '+str('='*40))
         torch.save(self.checkpoint, filename)
         print('Saved as', filename)
