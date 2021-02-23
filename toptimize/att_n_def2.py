@@ -24,10 +24,6 @@
 # ---------------------------------------------------------------------------------------------------------------------------------------
 # | Runs  | 70+1 | 80+1 | 70+1 | 80+1 | 60+1 | 70+1 | 70+1 | 80+1 | 70+1 | 80+1 | 60+1 | 70+1 | 70+1 | 80+1 | 70+1 | 80+1 | 60+1 | 70+1 |
 # ---------------------------------------------------------------------------------------------------------------------------------------
-from deeprobust.graph.data import Dataset
-from deeprobust.graph.defense import GCN
-from deeprobust.graph.global_attack import PGDAttack
-from deeprobust.graph.utils import preprocess
 import argparse
 from numpy.lib.function_base import append
 import torch
@@ -63,7 +59,10 @@ parser.add_argument('-e', '--total_epoch', default=300, type=int)
 parser.add_argument('-s', '--seed', default=0, type=int)
 parser.add_argument('-l', '--lambda1', default=1, type=float)
 parser.add_argument('-k', '--lambda2', default=10, type=float)
+parser.add_argument('-m', '--alpha', default=10, type=float)
+parser.add_argument('-n', '--beta', default=-3, type=float)
 parser.add_argument('-c', '--cold_start_ratio', default=1.0, type=float)
+parser.add_argument('-x', '--eval_topo', action='store_true')
 parser.add_argument('-a', '--use_last_epoch', action='store_true')
 parser.add_argument('-o', '--use_loss_epoch', action='store_true')
 parser.add_argument('-p', '--drop_edge', action='store_true')
@@ -81,6 +80,9 @@ total_epoch = args.total_epoch
 seed = args.seed
 lambda1 = args.lambda1
 lambda2 = args.lambda2
+alpha = args.alpha
+beta = args.beta
+eval_topo = args.eval_topo
 cold_start_ratio = args.cold_start_ratio
 use_last_epoch = args.use_last_epoch
 use_loss_epoch = args.use_loss_epoch
@@ -104,7 +106,7 @@ exp_name = exp_alias + '_' + dataset_name + '_' + basemodel_name
 exp_dir = (cur_dir.parent / 'experiment' / exp_name).resolve()
 
 
-for attack_name in ['attack_base', 'attack_ours']:
+for attack_name in ['attack_ours', 'attack_ours']:
 
     attack_dir = (cur_dir.parent / 'attack' / exp_name / attack_name).resolve()
     attack_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
@@ -149,25 +151,32 @@ for attack_name in ['attack_base', 'attack_ours']:
 
         step = 0
 
-        if basemodel_name == 'GCN':
-            model = GCN(dataset.num_features, 16,
-                        dataset.num_classes).to(device)
-        else:
-            model = GAT(dataset.num_features, 8,
-                        dataset.num_classes).to(device)
-        optimizer = None
-        log_model_architecture(step, model, optimizer,
-                               archi_path, overwrite=True)
-
         ###################################################
         ############## Attacking Topology #################
         ###################################################
 
         if attack_name == 'attack_base':
-            checkpoint_path = run_dir / ('model0.pt')
+            if basemodel_name == 'GCN':
+                model = GCN(dataset.num_features, 16,
+                            dataset.num_classes).to(device)
+            else:
+                model = GAT(dataset.num_features, 8,
+                            dataset.num_classes).to(device)
+            optimizer = None
+            checkpoint_path = run_dir / ('model_0.pt')
         elif attack_name == 'attack_ours':
-            checkpoint_path = run_dir / ('model5.pt')
-        modified_adj = pgd_attack(model, checkpoint_path)
+            if basemodel_name == 'GCN':
+                model = OurGCN(dataset.num_features, 16,
+                               dataset.num_classes, alpha=alpha, beta=beta).to(device)
+            else:
+                model = OurGAT(dataset.num_features, 8,
+                               dataset.num_classes, alpha=alpha, beta=beta).to(device)
+            optimizer = None
+            checkpoint_path = run_dir / ('model_3.pt')
+        log_model_architecture(step, model, optimizer,
+                               archi_path, overwrite=True)
+        modified_adj = pgd_attack(
+            model, checkpoint_path, data, device, trainlog_path)
         ###################################################
         ################# End of Attack ###################
         ###################################################

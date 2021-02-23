@@ -34,9 +34,8 @@ class Trainer():
         self.final_model = None
 
     def train(self, step, total_epoch, lambda1, lambda2, link_pred=None, teacher=None, use_last_epoch=False, use_loss_epoch=False, wnb_run=None):
-
         best_loss, best_acc = 1e10, 0
-        self.final_model = self.model
+        self.final_model = self.duplicate(self.model)
 
         log_training(f'Start Training Step {step}', self.logfile)
         log_training(f"{'*'*40}", self.logfile)
@@ -65,6 +64,7 @@ class Trainer():
             if use_loss_epoch:
                 if total_loss < best_loss:
                     best_loss = total_loss
+                    test_acc = tmp_test_acc
                     log_text += ' (best epoch)'
                     self.cache_checkpoint(
                         self.model, logit, epoch, total_loss, train_acc, val_acc, tmp_test_acc)
@@ -86,8 +86,22 @@ class Trainer():
         log_training(f'', self.logfile)
         return self.final_train_acc, self.final_val_acc, self.final_test_acc
 
+    def duplicate(self, model):
+        try:
+            copied_model = deepcopy(model)
+        except Exception as e:
+            copied_model = model.__class__(
+                model.nfeat, model.hidden_sizes, model.nclass).to(self.device)
+            copied_model.load_state_dict(model.state_dict())
+            copied_model.conv1.cache["new_edge"] = model.conv1.cache["new_edge"]
+            copied_model.conv1.cache["del_edge"] = model.conv1.cache["del_edge"]
+
+        return copied_model
+
     def cache_checkpoint(self, model, logit, epoch, total_loss, train_acc, val_acc, test_acc):
-        self.checkpoint['model'] = model.state_dict()
+        self.final_model = self.duplicate(model)
+
+        self.checkpoint['model'] = deepcopy(self.final_model.state_dict())
         self.checkpoint['logit'] = logit.clone().detach()
 
         self.final_epoch = epoch
@@ -95,16 +109,6 @@ class Trainer():
         self.final_train_acc = train_acc
         self.final_val_acc = val_acc
         self.final_test_acc = test_acc
-
-        try:
-            self.final_model = deepcopy(model)
-        except Exception as e:
-            final_model = model.__class__(
-                model.nfeat, model.hidden_sizes, model.nclass).to(self.device)
-            final_model.load_state_dict(model.state_dict())
-            final_model.conv1.cache["new_edge"] = model.conv1.cache["new_edge"]
-            final_model.conv1.cache["del_edge"] = model.conv1.cache["del_edge"]
-            self.final_model = final_model
 
     def save_model(self, filename, topo_holder):
         self.checkpoint['edge_index'] = topo_holder.edge_index
@@ -130,44 +134,48 @@ class Trainer():
     def test(self):
         self.model.eval()
 
-        final, logit = self.model(
-            self.features, self.edge_index, self.edge_attr)
+        with torch.no_grad():
+            final, logit = self.model(
+                self.features, self.edge_index, self.edge_attr)
 
-        accs = []
-        for mask in [self.train_mask, self.val_mask, self.test_mask]:
-            pred = logit[mask].max(1)[1]
-            acc = pred.eq(self.label[mask]).sum().item() / mask.sum().item()
-            acc = percentage(acc)
-            accs.append(acc)
+            accs = []
+            for mask in [self.train_mask, self.val_mask, self.test_mask]:
+                pred = logit[mask].max(1)[1]
+                acc = pred.eq(self.label[mask]).sum(
+                ).item() / mask.sum().item()
+                acc = percentage(acc)
+                accs.append(acc)
 
         return accs, logit
 
     @ torch.no_grad()
     def ensemble(self, run_dir):
         self.model.eval()
-        logit_list = []
-        for file in run_dir.iterdir():
-            if file.suffix == '.pt' and not file.stem.endswith('0'):
-                logit_list.append(torch.load(file)['logit'])
+        with torch.no_grad():
+            logit_list = []
+            for file in run_dir.iterdir():
+                if file.suffix == '.pt' and not file.stem.endswith('0'):
+                    logit_list.append(torch.load(file)['logit'])
 
-        logits_sum = 0
-        for i in range(0,len(logit_list)):
-            logits_sum += logit_list[i]
-        logit = logits_sum / len(logit_list)
-        accs = []
-        for mask in [self.train_mask, self.val_mask, self.test_mask]:
-            pred = logit[mask].max(1)[1]
-            acc = pred.eq(self.label[mask]).sum(
-            ).item() / mask.sum().item()
-            acc = percentage(acc)
-            accs.append(acc)
+            logits_sum = 0
+            for i in range(0, len(logit_list)):
+                logits_sum += logit_list[i]
+            logit = logits_sum / len(logit_list)
+            accs = []
+            for mask in [self.train_mask, self.val_mask, self.test_mask]:
+                pred = logit[mask].max(1)[1]
+                acc = pred.eq(self.label[mask]).sum(
+                ).item() / mask.sum().item()
+                acc = percentage(acc)
+                accs.append(acc)
         return accs
 
     @ torch.no_grad()
     def infer(self):
         self.final_model.eval()
-        final, logit = self.final_model(
-            self.features, self.edge_index, self.edge_attr)
+        with torch.no_grad():
+            final, logit = self.final_model(
+                self.features, self.edge_index, self.edge_attr)
         return final, logit
 
     @ torch.no_grad()
