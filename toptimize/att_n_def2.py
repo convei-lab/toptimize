@@ -113,7 +113,6 @@ for attack_name in ['attack_ours', 'attack_ours']:
     safe_remove_dir(attack_dir)
 
     for run in list(range(total_run)):
-
         # Directories
         run_name = 'run_' + str(run)
         run_dir = exp_dir / ('run_' + str(run))
@@ -172,7 +171,7 @@ for attack_name in ['attack_ours', 'attack_ours']:
                 model = OurGAT(dataset.num_features, 8,
                                dataset.num_classes, alpha=alpha, beta=beta).to(device)
             optimizer = None
-            checkpoint_path = run_dir / ('model_3.pt')
+            checkpoint_path = run_dir / ('model_1.pt')
         log_model_architecture(step, model, optimizer,
                                archi_path, overwrite=True)
         modified_adj = pgd_attack(
