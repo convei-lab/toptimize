@@ -1,3 +1,4 @@
+from torch._C import dtype
 from torch_geometric.utils import to_dense_adj
 import torch
 import torch.nn.functional as F
@@ -12,7 +13,7 @@ import matplotlib
 from deeprobust.graph.data import Dataset
 from deeprobust.graph.defense import GCN
 from deeprobust.graph.global_attack import PGDAttack
-from deeprobust.graph.utils import preprocess
+from deeprobust.graph.utils import add_self_loops, preprocess
 
 
 def load_data(data_path, dataset_name, device, use_gdc):
@@ -93,7 +94,7 @@ def evaluate_experiment(step, final, label, adj, gold_adj, confmat_dir, topofig_
     return perf_stat
 
 
-def log_dataset_stat(dataset, filename):
+def log_dataset_stat(data, dataset, filename):
     global print
     safe_remove_file(filename)
     log = decorated_with(filename)(print)
@@ -104,8 +105,6 @@ def log_dataset_stat(dataset, filename):
     log(f'Number of graphs: {len(dataset)}')
     log(f'Number of features: {dataset.num_features}')
     log(f'Number of classes: {dataset.num_classes}')
-
-    data = dataset[0]
 
     log(f'Data 0: {data}')
     log('===========================================================================================================')
@@ -156,7 +155,7 @@ def percentage(float_zero_to_one):
     return round(float_zero_to_one * 100, 2)
 
 
-def compare_topology(in_adj, gold_adj, log_filename, fig_filename):
+def compare_topology(in_adj, gold_adj, log_filename, fig_filename, add_loop=True):
     global print
     safe_remove_file(log_filename)
     log = decorated_with(log_filename)(print)
@@ -164,7 +163,8 @@ def compare_topology(in_adj, gold_adj, log_filename, fig_filename):
     print('Confusion Matrix '+str('='*40))
 
     adj = in_adj.clone()
-    adj.fill_diagonal_(1)
+    if add_loop:
+        adj.fill_diagonal_(1)
     gold_adj = gold_adj.clone()
 
     flat_adj = adj.detach().cpu().view(-1)
@@ -479,3 +479,45 @@ def pgd_attack(model, checkpoint_path, data, device, trainlog_path):
 
     data.edge_index, data.edge_attr = dense_to_sparse(modified_adj)
     adj = modified_adj
+
+
+def eval_metric(new_edge_index, gold_adj, node_degree, log_filename, fig_filename):
+    new_edge_adj = to_dense_adj(
+        new_edge_index, max_num_nodes=node_degree.size(0))[0]
+    new_edge_adj[new_edge_adj > 1] = 1
+
+    perf_stat = compare_topology(
+        new_edge_adj, gold_adj, log_filename, fig_filename, add_loop=False)
+    ppv = perf_stat['ppv']
+
+    counter = [0 for _ in range(node_degree.size(0))]
+
+    node_degree_list = node_degree.tolist()
+    new_edge_index_list = new_edge_index.T.tolist()
+    for i, j in new_edge_index_list:
+        counter[i] += node_degree_list[i]
+        counter[j] += node_degree_list[j]
+    length = 0
+    for degree in counter:
+        if degree > 0:
+            length += 1
+    mean_degree = sum(counter)/length
+
+    ppv = ppv / 100
+    mean_degree = mean_degree
+    metric = ppv
+
+    ppv = round(ppv, 4)
+    mean_degree = round(mean_degree, 4)
+    metric = round(metric, 4)
+
+    superprint(
+        f'Metric: {metric} New Edge Precision: {ppv} Mean Node Degree: {mean_degree}', log_filename=log_filename)
+    return metric
+
+
+def log_run_metric(metric, test_accs, filename):
+    superprint(
+        f'Metric: {metric}', filename, overwrite=True)
+    superprint(
+        f'Test: {test_accs}', filename)

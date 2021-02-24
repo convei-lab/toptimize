@@ -24,10 +24,6 @@
 # ---------------------------------------------------------------------------------------------------------------------------------------
 # | Runs  | 70+1 | 80+1 | 70+1 | 80+1 | 60+1 | 70+1 | 70+1 | 80+1 | 70+1 | 80+1 | 60+1 | 70+1 | 70+1 | 80+1 | 70+1 | 80+1 | 60+1 | 70+1 |
 # ---------------------------------------------------------------------------------------------------------------------------------------
-from deeprobust.graph.data import Dataset
-from deeprobust.graph.defense import GCN
-from deeprobust.graph.global_attack import PGDAttack
-from deeprobust.graph.utils import preprocess
 import argparse
 from numpy.lib.function_base import append
 import torch
@@ -47,6 +43,7 @@ from utils import (
     log_step_perf,
     log_run_perf,
     log_hyperparameters,
+    pgd_attack
 )
 from trainer import Trainer
 from model import GCN, GAT, OurGCN, OurGAT
@@ -60,10 +57,15 @@ parser.add_argument('-r', '--total_run', default=2, type=int)
 parser.add_argument('-t', '--total_step', default=5, type=int)
 parser.add_argument('-e', '--total_epoch', default=300, type=int)
 parser.add_argument('-s', '--seed', default=0, type=int)
-parser.add_argument('-l1', '--lambda1', default=1, type=float)
-parser.add_argument('-l2', '--lambda2', default=10, type=float)
-parser.add_argument('-p', '--ptb_ratio', default=0.05, type=float)
-parser.add_argument('-l', '--use_last', action='store_true')
+parser.add_argument('-l', '--lambda1', default=1, type=float)
+parser.add_argument('-k', '--lambda2', default=10, type=float)
+parser.add_argument('-m', '--alpha', default=10, type=float)
+parser.add_argument('-n', '--beta', default=-3, type=float)
+parser.add_argument('-c', '--cold_start_ratio', default=1.0, type=float)
+parser.add_argument('-x', '--eval_topo', action='store_true')
+parser.add_argument('-a', '--use_last_epoch', action='store_true')
+parser.add_argument('-o', '--use_loss_epoch', action='store_true')
+parser.add_argument('-p', '--drop_edge', action='store_true')
 parser.add_argument('-w', '--use_wnb', action='store_true')
 parser.add_argument('-g', '--use_gdc', action='store_true',
                     help='Use GDC preprocessing for GCN.')
@@ -78,9 +80,14 @@ total_epoch = args.total_epoch
 seed = args.seed
 lambda1 = args.lambda1
 lambda2 = args.lambda2
-ptb_ratio = args.ptb_ratio
-use_last_epoch = args.use_last
+alpha = args.alpha
+beta = args.beta
+eval_topo = args.eval_topo
+cold_start_ratio = args.cold_start_ratio
+use_last_epoch = args.use_last_epoch
+use_loss_epoch = args.use_loss_epoch
 use_wnb = args.use_wnb
+drop_edge = args.drop_edge
 use_gdc = args.use_gdc
 
 random.seed(seed)
@@ -99,14 +106,13 @@ exp_name = exp_alias + '_' + dataset_name + '_' + basemodel_name
 exp_dir = (cur_dir.parent / 'experiment' / exp_name).resolve()
 
 
-for attack_name in ['attack_base', 'attack_ours', 'cold_start']:
+for attack_name in ['attack_base', 'attack_ours']:
 
     attack_dir = (cur_dir.parent / 'attack' / exp_name / attack_name).resolve()
     attack_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
     safe_remove_dir(attack_dir)
 
     for run in list(range(total_run)):
-
         # Directories
         run_name = 'run_' + str(run)
         run_dir = exp_dir / ('run_' + str(run))
@@ -120,9 +126,6 @@ for attack_name in ['attack_base', 'attack_ours', 'cold_start']:
         tsne_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
 
         # Path
-        basemodel_path = run_dir / 'base_model.pt'
-        ourmodel_path = run_dir / 'our_model.pt'
-        modified_topo_path = attack_run_dir / 'modified_topo.pt'
         dataset_path = (Path(__file__) / '../../data').resolve() / dataset_name
         hyper_path = attack_dir / 'hyper.txt'
         datastat_path = attack_run_dir / 'data_stat.txt'
@@ -130,12 +133,10 @@ for attack_name in ['attack_base', 'attack_ours', 'cold_start']:
         trainlog_path = attack_run_dir / 'train_log.txt'
         step_perf_path = attack_run_dir / 'step_perf.txt'
         run_perf_path = attack_dir / 'run_perf.txt'
-        def_basemodel_path = attack_run_dir / 'base_model.pt'
-        def_ourmodel_path = attack_run_dir / 'our_model.pt'
 
         # Dataset
         dataset, data = load_data(dataset_path, dataset_name, device, use_gdc)
-        log_dataset_stat(dataset, datastat_path)
+        log_dataset_stat(data, dataset, datastat_path)
         label = data.y
         one_hot_label = F.one_hot(data.y).float()
         adj = to_dense_adj(data.edge_index)[0]
@@ -144,76 +145,40 @@ for attack_name in ['attack_base', 'attack_ours', 'cold_start']:
         log_hyperparameters(args, hyper_path)
 
         ###################################################
-        ############## Attacking Topology #################
-        ###################################################
-
-        if basemodel_name == 'GCN':
-            victim_model = GCN(dataset.num_features, 16,
-                               dataset.num_classes).to(device)
-        else:
-            victim_model = GAT(dataset.num_features, 8,
-                               dataset.num_classes).to(device)
-
-        if attack_name.startswith('attack'):
-            if attack_name == 'attack_base':
-                victim_checkpoint = torch.load(basemodel_path)
-            elif attack_name == 'attack_ours':
-                victim_checkpoint = torch.load(ourmodel_path)
-            print('Attacking Topology:', attack_name)
-            print(victim_checkpoint['model'])
-            victim_model.load_state_dict(victim_checkpoint['model'])
-            trainer = Trainer(victim_model, data, device,
-                              trainlog_path, use_last_epoch)
-            train_acc, val_acc, test_acc = trainer.test()
-            print('Original Acc', train_acc, val_acc, test_acc)
-
-            victim_edge_index = victim_checkpoint['edge_index']
-            victim_edge_attr = victim_checkpoint['edge_attr']
-            victim_adj = to_dense_adj(
-                data.edge_index, edge_attr=data.edge_attr)[0]
-            print('Adj', victim_adj.sum())
-            n_perturbations = int(args.ptb_ratio * (adj.sum()//2))
-            model = PGDAttack(model=victim_model,
-                              nnodes=victim_adj.shape[0],
-                              loss_type='CE',
-                              attack_structure=True,
-                              attack_features=False,
-                              device=device).to(device)
-            model.geometric_attack(data.x, victim_adj, data.y,
-                                   data.train_mask, n_perturbations=n_perturbations)
-            modified_adj = model.modified_adj
-            print('Original_adj', victim_adj)
-            print('Modified_adj', modified_adj)
-            print('Diff sum', (modified_adj != victim_adj).sum())
-            diff_idx = (modified_adj != victim_adj).nonzero(as_tuple=False)
-            for i, (row, col) in enumerate(diff_idx):
-                if i < 10:
-                    print('Different index: (', str(row.item())+',', str(col.item())+')', 'ori', victim_adj[row][col].item(
-                    ), '->', modified_adj[row][col].item())
-        elif attack_name == 'cold_start':
-            pass
-        data.edge_index, data.edge_attr = dense_to_sparse(modified_adj)
-        adj = modified_adj
-        ###################################################
         ############## Training Base Model ################
         ###################################################
 
         step = 0
 
-        if basemodel_name == 'GCN':
-            model = GCN(dataset.num_features, 16,
-                        dataset.num_classes).to(device)
-            optimizer = torch.optim.Adam([
-                dict(params=model.conv1.parameters(), weight_decay=5e-4),
-                dict(params=model.conv2.parameters(), weight_decay=0)
-            ], lr=0.01)
-        else:
-            model = GAT(dataset.num_features, 8,
-                        dataset.num_classes).to(device)
-            optimizer = torch.optim.Adam(
-                model.parameters(), lr=0.005, weight_decay=5e-4)
+        ###################################################
+        ############## Attacking Topology #################
+        ###################################################
+
+        if attack_name == 'attack_base':
+            if basemodel_name == 'GCN':
+                model = GCN(dataset.num_features, 16,
+                            dataset.num_classes).to(device)
+            else:
+                model = GAT(dataset.num_features, 8,
+                            dataset.num_classes).to(device)
+            optimizer = None
+            checkpoint_path = run_dir / ('model_0.pt')
+        elif attack_name == 'attack_ours':
+            if basemodel_name == 'GCN':
+                model = OurGCN(dataset.num_features, 16,
+                               dataset.num_classes, alpha=alpha, beta=beta).to(device)
+            else:
+                model = OurGAT(dataset.num_features, 8,
+                               dataset.num_classes, alpha=alpha, beta=beta).to(device)
+            optimizer = None
+            checkpoint_path = run_dir / ('model_1.pt')
         log_model_architecture(step, model, optimizer,
                                archi_path, overwrite=True)
+        modified_adj = pgd_attack(
+            model, checkpoint_path, data, device, trainlog_path)
+        ###################################################
+        ################# End of Attack ###################
+        ###################################################
 
         trainer = Trainer(model, optimizer, data, device,
                           trainlog_path, use_last_epoch)
