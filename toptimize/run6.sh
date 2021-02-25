@@ -5,21 +5,12 @@
 
 # GCN
 
-# Cora
-# python train.py no_drop_real -b GCN -d Cora -r 100 -m 10
-# python train.py no_drop_alpha9 -s 0 -b GCN -d Cora -r 20 -m 9
-
-# Cora_cold_start
-# python train.py no_drop_cs_0.75 -b GCN -d Cora -r 10 -m 10 -c 0.75
-
-# Pubmed
-# python train.py no_drop_real -b GCN -d Pubmed -r 100 -m 9
-python train.py hongin_no_drop_LL_real -b GCN -d Pubmed -r 10 -m 1000000 -l 0
-
 # Citeseer
-# python train.py no_drop_real -b GCN -d Citeseer -r 100 -m 7
-# python train.py no_drop_alpha10_2 -b GCN -d Citeseer -r 10 -m 10
+# python train.py no_drop_alpha7 -b GCN -d Citeseer -r 10 -m 7
+# python train.py no_drop_alpha7_2 -b GCN -d Citeseer -r 10 -m 7
 
+# Cold Start
+python train.py cs_0.25 -b GCN -d Citeseer -r 50 -m 7 -c 0.25
 
 # Drop Experiment (Best Epoch)
 # python train.py d_b0 -s 0 -b GCN -d Cora -r 100 -t 5 -dr
@@ -52,9 +43,7 @@ python train.py hongin_no_drop_LL_real -b GCN -d Pubmed -r 10 -m 1000000 -l 0
 # python train.py d_l2 -s 2 -b GCN -d Pubmed -r 20 -t 5 -dr -w -l
 
 # # GAT
-
-# Citeseer
-# python train.py no_drop_real -b GAT -d Citeseer -r 100 -m 0 -e 600
+# python train.py test -b GAT -d Cora -r 100 -m 10 -k 0 -w
 
 # # Drop Experiment (Best Epoch)
 # python train.py d_b0 -s 0 -b GAT -d Cora -r 20 -t 5 -dr -w
