@@ -408,38 +408,52 @@ def log_step_perf(val_accs, test_accs, noen_vals, noen_tests, filename):
     superprint(f'Test Accs {test_accs}', filename)
 
 
-def log_run_perf(base_vals, base_tests, ours_vals, ours_tests, filename):
+def log_run_perf(base_vals, base_tests, ours_vals, ours_tests, noen_our_vals, noen_our_tests, filename):
     superprint(
         f'Run Performance Comparision {"="*40}', filename, overwrite=True)
 
     val_accs = np.array(base_vals)
-    mean = round(np.mean(base_vals), 2)
-    std = round(np.std(base_vals), 2)
+    mean_val = round(np.mean(base_vals), 2)
+    std_val = round(np.std(base_vals), 2)
 
     test_accs = np.array(base_tests)
-    mean = round(np.mean(base_tests), 2)
-    std = round(np.std(base_tests), 2)
+    mean_test = round(np.mean(base_tests), 2)
+    std_test = round(np.std(base_tests), 2)
 
     superprint(f'Baseline', filename, overwrite=True)
-    superprint(f'Mean Val Acc: {mean} +/- {std}', filename)
-    superprint(f'Mean Test Acc: {mean} +/- {std}', filename)
+    superprint(f'Mean Val Acc: {mean_val} +/- {std_val}', filename)
+    superprint(f'Mean Test Acc: {mean_test} +/- {std_test}', filename)
     superprint(f'Vals Accs: {val_accs}', filename)
     superprint(f'Test Accs {test_accs}', filename)
 
     val_accs = np.array(ours_vals)
-    mean = round(np.mean(ours_vals), 2)
-    std = round(np.std(ours_vals), 2)
+    mean_val = round(np.mean(ours_vals), 2)
+    std_val = round(np.std(ours_vals), 2)
 
     test_accs = np.array(ours_tests)
-    mean = round(np.mean(ours_tests), 2)
-    std = round(np.std(ours_tests), 2)
+    mean_test = round(np.mean(ours_tests), 2)
+    std_test = round(np.std(ours_tests), 2)
 
     superprint(f'Ours', filename)
-    superprint(f'Mean Val Acc: {mean} +/- {std}', filename)
-    superprint(f'Mean Test Acc: {mean} +/- {std}', filename)
+    superprint(f'Mean Val Acc: {mean_val} +/- {std_val}', filename)
+    superprint(f'Mean Test Acc: {mean_test} +/- {std_test}', filename)
     superprint(f'Vals Accs: {val_accs}', filename)
     superprint(f'Test Accs {test_accs}', filename)
 
+    
+    val_accs = np.array(noen_our_vals)
+    mean_val = round(np.mean(noen_our_vals), 2)
+    std_val = round(np.std(noen_our_vals), 2)
+
+    test_accs = np.array(noen_our_tests)
+    mean_test = round(np.mean(noen_our_tests), 2)
+    std_test = round(np.std(noen_our_tests), 2)
+
+    superprint(f'No Ensemble Ours', filename)
+    superprint(f'Mean Val Acc: {mean_val} +/- {std_val}', filename)
+    superprint(f'Mean Test Acc: {mean_test} +/- {std_test}', filename)
+    superprint(f'Vals Accs: {val_accs}', filename)
+    superprint(f'Test Accs {test_accs}', filename)
 
 def pgd_attack(model, checkpoint_path, data, device, trainlog_path):
     checkpoint = torch.load(checkpoint_path)

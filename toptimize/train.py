@@ -64,16 +64,17 @@ use_wnb = args.use_wnb
 drop_edge = args.drop_edge
 use_gdc = args.use_gdc
 
-random.seed(seed)
-torch.manual_seed(seed)
-torch.cuda.manual_seed(seed)
-np.random.seed(seed)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
+# random.seed(seed)
+# torch.manual_seed(seed)
+# torch.cuda.manual_seed(seed)
+# np.random.seed(seed)
+# torch.backends.cudnn.deterministic = True
+# torch.backends.cudnn.benchmark = False
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 base_vals, base_tests = [], []
 our_vals, our_tests = [], []
+noen_our_vals, noen_our_tests = [], []
 
 cur_dir = Path(__file__).resolve().parent
 exp_name = exp_alias + '_' + dataset_name + '_' + basemodel_name
@@ -127,17 +128,21 @@ for run in list(range(total_run)):
     else:
         model = GAT(dataset.num_features, 8, dataset.num_classes).to(device)
         optimizer = torch.optim.Adam(
-            model.parameters(), lr=0.005, weight_decay=5e-4)
+            model.parameters(), lr=0.01, weight_decay=5e-4)
     log_model_architecture(step, model, optimizer, archi_path, overwrite=True)
 
     trainer = Trainer(model, data, device,
                       trainlog_path, optimizer=optimizer)
-    train_acc, val_acc, test_acc = trainer.fit(
-        step, 200, lambda1, lambda2, use_last_epoch=False, use_loss_epoch=False)
+    if basemodel_name == 'GCN':
+        train_acc, val_acc, test_acc = trainer.fit(
+            step, 200, lambda1, lambda2, use_last_epoch=False, use_loss_epoch=False)
+    else:
+        train_acc, val_acc, test_acc = trainer.fit(
+            step, 300, lambda1, lambda2, use_last_epoch=False, use_loss_epoch=False)
     base_vals.append(val_acc)
     base_tests.append(test_acc)
 
-    # final, logit = trainer.infer()
+    final, logit = trainer.infer()
 
     if eval_topo:
         perf_stat = evaluate_experiment(
@@ -177,7 +182,7 @@ for run in list(range(total_run)):
             model = OurGAT(dataset.num_features, 8,
                            dataset.num_classes, alpha=alpha, beta=beta).to(device)
             optimizer = torch.optim.Adam(
-                model.parameters(), lr=0.005, weight_decay=5e-4)
+                model.parameters(), lr=0.01, weight_decay=5e-4)
             link_pred = GAT4ConvSIGIR
         log_model_architecture(step, model, optimizer, archi_path)
 
@@ -192,7 +197,7 @@ for run in list(range(total_run)):
             f'Non Ensembled Train {train_acc} Val {val_acc} Test {test_acc}', trainlog_path)
 
         # TODO check if logit in test func is identical to the infer's
-        # final, logit = trainer.infer()
+        final, logit = trainer.infer()
         data.edge_index, data.edge_attr, adj = trainer.augment_topology(
             drop_edge=drop_edge)
 
@@ -223,8 +228,16 @@ for run in list(range(total_run)):
 
     our_vals.append(val_acc)
     our_tests.append(test_acc)
+    noen_our_vals.append(step_noen_vals[-1])
+    noen_our_tests.append(step_noen_tests[-1])
 
     log_step_perf(step_vals, step_tests, step_noen_vals,
                   step_noen_tests, step_perf_path)
 
-log_run_perf(base_vals, base_tests, our_vals, our_tests, run_perf_path)
+    run_dir = exp_dir / ('run_' + str(run))
+    for file in run_dir.iterdir():
+        if file.suffix == '.pt':
+            file.unlink()
+
+log_run_perf(base_vals, base_tests, our_vals, our_tests,
+             noen_our_vals, noen_our_tests, run_perf_path)

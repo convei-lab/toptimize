@@ -4,13 +4,13 @@
 # python train.py seed2 -s 2 -b GCN -d Cora -r 20 -t 5 -l -w
 
 # GCN
-# python train.py no_drop_LL_real -b GCN -d Citeseer -r 100 -m 100000 -l 0
-# python train.py no_drop_lr0.005 -s 0 -b GCN -d Cora -r 20 -m 10
-# python train.py drop_alpha10 -s 0 -b GCN -d Citeseer -r 20 -m 10 -p
-# python train.py drop_alpha9 -s 0 -b GCN -d Citeseer -r 20 -m 9 -p
+
+# Citeseer
+# python train.py no_drop_alpha7 -b GCN -d Citeseer -r 10 -m 7
+# python train.py no_drop_alpha7_2 -b GCN -d Citeseer -r 10 -m 7
 
 # Cold Start
-python train.py cs_0.25 -b GCN -d Cora -r 50 -m 10 -c 0.25
+python train.py cs_0.25 -b GCN -d Citeseer -r 50 -m 7 -c 0.25
 
 # Drop Experiment (Best Epoch)
 # python train.py d_b0 -s 0 -b GCN -d Cora -r 100 -t 5 -dr
@@ -43,7 +43,7 @@ python train.py cs_0.25 -b GCN -d Cora -r 50 -m 10 -c 0.25
 # python train.py d_l2 -s 2 -b GCN -d Pubmed -r 20 -t 5 -dr -w -l
 
 # # GAT
-# python train.py no_drop_real -b GAT -d Cora -r 100 -m 5 -e 500
+# python train.py test -b GAT -d Cora -r 100 -m 10 -k 0 -w
 
 # # Drop Experiment (Best Epoch)
 # python train.py d_b0 -s 0 -b GAT -d Cora -r 20 -t 5 -dr -w
