@@ -213,4 +213,4 @@ class Trainer():
         log_training(f'# Before Edge: {before_edge_num}', self.logfile)
         log_training(f'# After Edge: {edge_index.size(1)}', self.logfile)
 
-        return edge_index, edge_attr, adj
+        return edge_index, edge_attr, adj, new_edge

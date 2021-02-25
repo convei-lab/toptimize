@@ -1,4 +1,6 @@
+from torch._C import dtype
 from torch_geometric.utils import to_dense_adj
+from torch_geometric.utils.sparse import dense_to_sparse
 import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
@@ -12,8 +14,8 @@ import matplotlib
 from deeprobust.graph.data import Dataset
 from deeprobust.graph.defense import GCN
 from deeprobust.graph.global_attack import PGDAttack
-from deeprobust.graph.utils import preprocess
-from torch_geometric.utils.sparse import dense_to_sparse
+from deeprobust.graph.utils import add_self_loops, preprocess
+from scipy.sparse import csr_matrix
 
 
 def load_data(data_path, dataset_name, device, use_gdc):
@@ -155,7 +157,7 @@ def percentage(float_zero_to_one):
     return round(float_zero_to_one * 100, 2)
 
 
-def compare_topology(in_adj, gold_adj, log_filename, fig_filename):
+def compare_topology(in_adj, gold_adj, log_filename, fig_filename, add_loop=True):
     global print
     safe_remove_file(log_filename)
     log = decorated_with(log_filename)(print)
@@ -163,7 +165,8 @@ def compare_topology(in_adj, gold_adj, log_filename, fig_filename):
     print('Confusion Matrix '+str('='*40))
 
     adj = in_adj.clone()
-    adj.fill_diagonal_(1)
+    if add_loop:
+        adj.fill_diagonal_(1)
     gold_adj = gold_adj.clone()
 
     flat_adj = adj.detach().cpu().view(-1)
@@ -440,39 +443,44 @@ def log_run_perf(base_vals, base_tests, ours_vals, ours_tests, filename):
     superprint(f'Test Accs {test_accs}', filename)
 
 
-def pgd_attack(model, checkpoint_path, data, device, trainlog_path, ptb_rate=0.05):
+def pgd_attack(victim_model, checkpoint_path, data, device, trainlog_path, ptb_rate=0.05):
     checkpoint = torch.load(checkpoint_path)
     print('Attacking Topology:', checkpoint_path)
 
     from trainer import Trainer
-    model.load_state_dict(checkpoint['model'])
-    trainer = Trainer(model, data, device,
+    victim_model.load_state_dict(checkpoint['model'])
+    print('device', device)
+    trainer = Trainer(victim_model, data, device,
                       trainlog_path)
     (train_acc, val_acc, test_acc), logit = trainer.test()
     print('GNN(X, A)', train_acc, val_acc, test_acc)
 
-    data.edge_index = checkpoint['edge_index']
-    data.edge_attr = checkpoint['edge_attr']
-    model.load_state_dict(checkpoint['model'])
-    trainer = Trainer(model, data, device,
-                      trainlog_path)
+    edge_index = checkpoint['edge_index']
+    edge_attr = checkpoint['edge_attr']
+
+    trainer.edge_index = edge_index
+    trainer.edge_attr = edge_attr
     (train_acc, val_acc, test_acc), logit = trainer.test()
     print("GNN(X, A')", train_acc, val_acc, test_acc)
 
-    edge_index = checkpoint['edge_index']
-    edge_attr = checkpoint['edge_attr']
     adj = to_dense_adj(edge_index, edge_attr=edge_attr,
                        max_num_nodes=data.num_nodes)[0]
     n_perturbations = int(ptb_rate * (adj.sum()//2))
-    model = PGDAttack(model=model,
-                      nnodes=adj.shape[0],
-                      loss_type='CE',
-                      attack_structure=True,
-                      attack_features=False,
-                      device=device).to(device)
-    model.geometric_attack(data.x, adj, data.y,
-                           data.train_mask, n_perturbations=n_perturbations)
-    modified_adj = model.modified_adj
+    attack_model = PGDAttack(model=victim_model,
+                             nnodes=adj.shape[0],
+                             loss_type='CE',
+                             device=device).to(device)
+
+    label = data.y
+    # adj.fill_diagonal_(1)
+    adj, features, labels = csr_matrix(
+        adj.cpu().detach()), csr_matrix(data.x.cpu()), data.y.cpu()
+    # features = normalize_feature(features)
+    idx_train, idx_val, idx_test = data.train_mask, data.val_mask, data.test_mask
+
+    attack_model.geometric_attack(features, adj, label,
+                                  idx_train, n_perturbations=n_perturbations)
+    modified_adj = attack_model.modified_adj
     print('Original_adj', adj)
     print('Modified_adj', modified_adj)
     print('Diff sum', (modified_adj != adj).sum())
@@ -482,6 +490,47 @@ def pgd_attack(model, checkpoint_path, data, device, trainlog_path, ptb_rate=0.0
             print('Different index: (', str(row.item())+',', str(col.item())+')', 'ori', adj[row][col].item(
             ), '->', modified_adj[row][col].item())
 
-    return modified_adj
+    data.edge_index, data.edge_attr = dense_to_sparse(modified_adj)
+    adj = modified_adj
 
-def eval_new_edge(new)
+
+def eval_metric(new_edge_index, gold_adj, node_degree, log_filename, fig_filename):
+    new_edge_adj = to_dense_adj(
+        new_edge_index, max_num_nodes=node_degree.size(0))[0]
+    new_edge_adj[new_edge_adj > 1] = 1
+
+    perf_stat = compare_topology(
+        new_edge_adj, gold_adj, log_filename, fig_filename, add_loop=False)
+    ppv = perf_stat['ppv']
+
+    counter = [0 for _ in range(node_degree.size(0))]
+
+    node_degree_list = node_degree.tolist()
+    new_edge_index_list = new_edge_index.T.tolist()
+    for i, j in new_edge_index_list:
+        counter[i] += node_degree_list[i]
+        counter[j] += node_degree_list[j]
+    length = 0
+    for degree in counter:
+        if degree > 0:
+            length += 1
+    mean_degree = sum(counter)/length
+
+    ppv = ppv / 100
+    mean_degree = mean_degree
+    metric = ppv
+
+    ppv = round(ppv, 4)
+    mean_degree = round(mean_degree, 4)
+    metric = round(metric, 4)
+
+    superprint(
+        f'Metric: {metric} New Edge Precision: {ppv} Mean Node Degree: {mean_degree}', log_filename=log_filename)
+    return metric
+
+
+def log_run_metric(metric, test_accs, filename):
+    superprint(
+        f'Metric: {metric}', filename, overwrite=True)
+    superprint(
+        f'Test: {test_accs}', filename)

@@ -33,6 +33,8 @@ parser.add_argument('--ptb_rate', type=float,
                     default=0.05,  help='pertubation rate')
 parser.add_argument('--model', type=str, default='PGD',
                     choices=['PGD', 'min-max'], help='model variant')
+parser.add_argument('-u', '--use_our_data', action='store_true')
+
 
 args = parser.parse_args()
 
@@ -45,15 +47,15 @@ if device != 'cpu':
 
 # data = Dataset(root='/tmp/', name=args.dataset, setting='nettack')
 
-our_data = 0
+
 # Dataset
-if our_data:
+if args.use_our_data:
     dataset_name = 'Cora'
     use_gdc = False
     dataset_path = (Path(__file__) / '../../data').resolve() / dataset_name
     dataset, data = load_data(dataset_path, dataset_name, device, use_gdc)
     datastat_path = Path(__file__).parent / 'data_stat.txt'
-    log_dataset_stat(dataset, datastat_path)
+    log_dataset_stat(data, dataset, datastat_path)
     label = data.y
     one_hot_label = F.one_hot(data.y).float()
     adj = to_dense_adj(data.edge_index)[0]

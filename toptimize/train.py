@@ -17,7 +17,9 @@ from utils import (
     log_run_perf,
     log_hyperparameters,
     cold_start,
-    superprint
+    superprint,
+    eval_metric,
+    log_run_metric
 )
 from trainer import Trainer
 from model import GCN, GAT, OurGCN, OurGAT
@@ -43,6 +45,7 @@ parser.add_argument('-p', '--drop_edge', action='store_true')
 parser.add_argument('-w', '--use_wnb', action='store_true')
 parser.add_argument('-g', '--use_gdc', action='store_true',
                     help='Use GDC preprocessing for GCN.')
+parser.add_argument('-z', '--use_metric', action='store_true')
 args = parser.parse_args()
 
 exp_alias = args.exp_alias
@@ -63,6 +66,7 @@ use_loss_epoch = args.use_loss_epoch
 use_wnb = args.use_wnb
 drop_edge = args.drop_edge
 use_gdc = args.use_gdc
+use_metric = args.use_metric
 
 random.seed(seed)
 torch.manual_seed(seed)
@@ -80,7 +84,12 @@ exp_name = exp_alias + '_' + dataset_name + '_' + basemodel_name
 exp_dir = (cur_dir.parent / 'experiment' / exp_name).resolve()
 safe_remove_dir(exp_dir)
 
+if use_metric:
+    all_run_metric = []
+
 for run in list(range(total_run)):
+    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@ RUN',
+          run, ' @@@@@@@@@@@@@@@@@@@@@@@@@@@@')
 
     # Directories
     run_name = 'run_' + str(run)
@@ -88,9 +97,11 @@ for run in list(range(total_run)):
     confmat_dir = run_dir / 'confmat'
     topofig_dir = run_dir / 'topofig'
     tsne_dir = run_dir / 'tsne'
+    metric_dir = run_dir / 'metric'
     confmat_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
     topofig_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
     tsne_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
+    metric_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
 
     # Path
     dataset_path = (Path(__file__) / '../../data').resolve() / dataset_name
@@ -100,11 +111,15 @@ for run in list(range(total_run)):
     trainlog_path = run_dir / 'train_log.txt'
     step_perf_path = run_dir / 'step_perf.txt'
     run_perf_path = exp_dir / 'run_perf.txt'
+    metric_fig_path = metric_dir / 'metric.png'
+    metric_txt_path = metric_dir / 'metric.txt'
 
     # Dataset
     dataset, data = load_data(dataset_path, dataset_name, device, use_gdc)
+    orig_adj = to_dense_adj(data.edge_index, edge_attr=data.edge_attr)
+    node_degree = orig_adj.sum(dim=1)[0]
     data.edge_index = cold_start(data.edge_index, ratio=cold_start_ratio)
-    log_dataset_stat(dataset, datastat_path)
+    log_dataset_stat(data, dataset, datastat_path)
     label = data.y
     one_hot_label = F.one_hot(data.y).float()
     adj = to_dense_adj(data.edge_index, max_num_nodes=data.num_nodes)[0]
@@ -136,13 +151,12 @@ for run in list(range(total_run)):
     base_vals.append(val_acc)
     base_tests.append(test_acc)
 
-    # final, logit = trainer.infer()
+    trainer.save_model(run_dir / ('model_'+str(step)+'.pt'), data)
 
-    if eval_topo:         # TODO check if logit in test func is identical to the infer's
+    if eval_topo:
+        final, logit = trainer.infer()
         perf_stat = evaluate_experiment(
             step, final, label, adj, gold_adj, confmat_dir, topofig_dir, tsne_dir)
-
-    trainer.save_model(run_dir / ('model_'+str(step)+'.pt'), data)
 
     ##################################################
     ############## Training Our Model ################
@@ -152,6 +166,9 @@ for run in list(range(total_run)):
     step_noen_vals, step_noen_tests = [], []
     wnb_group_name = exp_alias + '_run' + \
         str(run) + '_' + wandb.util.generate_id()
+
+    if use_metric:
+        all_step_new_edge = None
 
     for step in range(1, total_step + 1):
         teacher = trainer.checkpoint['logit']
@@ -190,17 +207,21 @@ for run in list(range(total_run)):
         superprint(
             f'Non Ensembled Train {train_acc} Val {val_acc} Test {test_acc}', trainlog_path)
 
-        # final, logit = trainer.infer()
-        data.edge_index, data.edge_attr, adj = trainer.augment_topology(
+        data.edge_index, data.edge_attr, adj, new_edge = trainer.augment_topology(
             drop_edge=drop_edge)
 
-        if eval_topo:
-            perf_stat = evaluate_experiment(
-                step, final, label, adj, gold_adj, confmat_dir, topofig_dir, tsne_dir, prev_stat)
+        if use_metric:
+            all_step_new_edge = new_edge.clone().detach() if all_step_new_edge is None else torch.cat([
+                all_step_new_edge, new_edge], dim=1)
 
         trainer.save_model(run_dir / ('model_'+str(step)+'.pt'), data)
         train_acc, val_acc, test_acc = trainer.ensemble(run_dir)
 
+        if eval_topo:
+            # TODO check if logit in test func is identical to the infer's
+            final, logit = trainer.infer()
+            perf_stat = evaluate_experiment(
+                step, final, label, adj, gold_adj, confmat_dir, topofig_dir, tsne_dir, prev_stat)
         superprint(
             f'Ensembled Train {train_acc} Val {val_acc} Test {test_acc}', trainlog_path)
 
@@ -224,5 +245,19 @@ for run in list(range(total_run)):
 
     log_step_perf(step_vals, step_tests, step_noen_vals,
                   step_noen_tests, step_perf_path)
+    if use_metric:
+        if all_step_new_edge is not None:
+            print('all_step_new_edge', all_step_new_edge,
+                  all_step_new_edge.shape)
+            if all_step_new_edge.nelement() != 0:
+                metric = eval_metric(all_step_new_edge, gold_adj, node_degree,
+                                     metric_txt_path, metric_fig_path)
+            else:
+                metric = -1
+            all_run_metric.append(metric)
+        print('all_run_metric', all_run_metric, len(all_run_metric))
 
 log_run_perf(base_vals, base_tests, our_vals, our_tests, run_perf_path)
+
+if use_metric:
+    log_run_metric(all_run_metric, our_tests, exp_dir / 'metric.txt')
