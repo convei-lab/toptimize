@@ -24,6 +24,7 @@ def load_data(data_path, dataset_name, device, use_gdc):
     # Data
     dataset = Planetoid(data_path, dataset_name,
                         transform=T.NormalizeFeatures())
+
     data = dataset[0].to(device)
     if use_gdc:
         gdc = T.GDC(self_loop_weight=1, normalization_in='sym',

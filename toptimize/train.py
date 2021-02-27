@@ -7,6 +7,7 @@ from torch_geometric.utils import to_dense_adj
 import wandb
 import random
 import numpy as np
+import scipy.sparse as sp
 from pathlib import Path
 from utils import (
     safe_remove_dir,
@@ -29,22 +30,22 @@ parser = argparse.ArgumentParser()
 parser.add_argument('exp_alias', type=str)
 parser.add_argument('-b', '--basemodel', default='GCN', type=str)
 parser.add_argument('-d', '--dataset', default='Cora', type=str)
-parser.add_argument('-r', '--total_run', default=2, type=int)
-parser.add_argument('-t', '--total_step', default=5, type=int)
-parser.add_argument('-e', '--total_epoch', default=300, type=int)
+parser.add_argument('-tr', '--total_run', default=2, type=int)
+parser.add_argument('-ts', '--total_step', default=5, type=int)
+parser.add_argument('-te', '--total_epoch', default=300, type=int)
 parser.add_argument('-s', '--seed', default=0, type=int)
 parser.add_argument('-hs', '--hidden_sizes', default=None, type=int)
-parser.add_argument('-l', '--lambda1', default=1, type=float)
-parser.add_argument('-k', '--lambda2', default=10, type=float)
-parser.add_argument('-m', '--alpha', default=10, type=float)
+parser.add_argument('-l1', '--lambda1', default=1, type=float)
+parser.add_argument('-2', '--lambda2', default=10, type=float)
+parser.add_argument('-t', '--tau', default=10, type=float)
 parser.add_argument('-n', '--beta', default=-3, type=float)
-parser.add_argument('-c', '--cold_start_ratio', default=1.0, type=float)
-parser.add_argument('-x', '--eval_topo', action='store_true')
-parser.add_argument('-a', '--use_last_epoch', action='store_true')
+parser.add_argument('-csr', '--cold_start_ratio', default=1.0, type=float)
+parser.add_argument('-et', '--eval_topo', action='store_true')
+parser.add_argument('-le', '--use_last_epoch', action='store_true')
 parser.add_argument('-o', '--use_loss_epoch', action='store_true')
-parser.add_argument('-p', '--drop_edge', action='store_true')
-parser.add_argument('-w', '--use_wnb', action='store_true')
-parser.add_argument('-g', '--use_gdc', action='store_true',
+parser.add_argument('-de', '--drop_edge', action='store_true')
+parser.add_argument('-wnb', '--use_wnb', action='store_true')
+parser.add_argument('-gdc', '--use_gdc', action='store_true',
                     help='Use GDC preprocessing for GCN.')
 parser.add_argument('-z', '--use_metric', action='store_true')
 parser.add_argument('-sm', '--save_model', action='store_true')
@@ -60,7 +61,7 @@ seed = args.seed
 hidden_sizes = args.hidden_sizes
 lambda1 = args.lambda1
 lambda2 = args.lambda2
-alpha = args.alpha
+alpha = args.tau
 beta = args.beta
 eval_topo = args.eval_topo
 cold_start_ratio = args.cold_start_ratio
@@ -129,7 +130,6 @@ for run in list(range(total_run)):
     one_hot_label = F.one_hot(data.y).float()
     adj = to_dense_adj(data.edge_index, max_num_nodes=data.num_nodes)[0]
     gold_adj = torch.matmul(one_hot_label, one_hot_label.T)
-
     log_hyperparameters(args, hyper_path)
 
     ###################################################
@@ -151,7 +151,7 @@ for run in list(range(total_run)):
         model = GAT(dataset.num_features, hidden_sizes,
                     dataset.num_classes).to(device)
         optimizer = torch.optim.Adam(
-            model.parameters(), lr=0.01, weight_decay=5e-4)
+            model.parameters(), lr=0.005, weight_decay=0.0005)
     log_model_architecture(step, model, optimizer, archi_path, overwrite=True)
 
     trainer = Trainer(model, data, device,
@@ -207,7 +207,7 @@ for run in list(range(total_run)):
             model = OurGAT(dataset.num_features, hidden_sizes,
                            dataset.num_classes, alpha=alpha, beta=beta).to(device)
             optimizer = torch.optim.Adam(
-                model.parameters(), lr=0.01, weight_decay=5e-4)
+                model.parameters(), lr=0.005, weight_decay=0.0005)
             link_pred = GAT4ConvSIGIR
         log_model_architecture(step, model, optimizer, archi_path)
 

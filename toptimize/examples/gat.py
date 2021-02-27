@@ -5,19 +5,24 @@ import torch.nn.functional as F
 from torch_geometric.datasets import Planetoid
 import torch_geometric.transforms as T
 from torch_geometric.nn import GATConv
+import statistics
+from utils import *
+import scipy.sparse as sp
 
-dataset = 'Cora'
-path = osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data', dataset)
-dataset = Planetoid(path, dataset, transform=T.NormalizeFeatures())
-data = dataset[0]
+# dataset = 'Cora'
+# path = osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data', dataset)
+# dataset = Planetoid(path, dataset, transform=T.NormalizeFeatures())
+# data = dataset[0]
+# adj = data.edge_index
 
-
+adj, features, labels, idx_train, idx_val, idx_test = load_data()
+input()
 class Net(torch.nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.conv1 = GATConv(dataset.num_features, 8, heads=8, dropout=0.6)
+        self.conv1 = GATConv(1433, 8, heads=8, dropout=0.6)
         # On the Pubmed dataset, use heads=8 in conv2.
-        self.conv2 = GATConv(8 * 8, dataset.num_classes, heads=1, concat=False,
+        self.conv2 = GATConv(8 * 8, 7, heads=1, concat=False,
                              dropout=0.6)
 
     def forward(self):
@@ -49,8 +54,21 @@ def test():
         accs.append(acc)
     return accs
 
-
-for epoch in range(1, 201):
-    train()
-    log = 'Epoch: {:03d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-    print(log.format(epoch, *test()))
+runs = 100
+test_accs = []
+for run in range(1, runs+1):
+    model, data = Net().to(device), data.to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
+    best_val_acc, best_epoch, best_test_acc = 0, 0, 0
+    for epoch in range(1, 201):
+        train()
+        log = 'Epoch: {:03d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+        train_acc, val_acc, test_acc = test()
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc 
+            best_epoch = epoch
+            best_test_acc = test_acc
+        print(log.format(epoch, *test()))
+    print("Best epoch", best_epoch, "best_val_acc", best_val_acc, "best_test_acc", best_test_acc)
+    test_accs.append(best_test_acc)
+print("average test acc", statistics.mean(test_accs))
