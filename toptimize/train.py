@@ -20,11 +20,11 @@ from utils import (
     cold_start,
     superprint,
     eval_metric,
-    log_run_metric
+    log_run_metric,
+    evaluate_experiment
 )
 from trainer import Trainer
 from model import GCN, GAT, OurGCN, OurGAT
-from utils import evaluate_experiment
 
 parser = argparse.ArgumentParser()
 parser.add_argument('exp_alias', type=str)

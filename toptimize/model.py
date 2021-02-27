@@ -3,6 +3,7 @@ import torch.nn.functional as F
 from torch_geometric.nn import GCNConv, GATConv  # noqa
 from torch_geometric.nn import GCN4ConvSIGIR, GAT4ConvSIGIR
 from torch_geometric.utils.sparse import dense_to_sparse
+from utils import log_grad
 
 
 class GCN(torch.nn.Module):
@@ -79,8 +80,9 @@ class OurGCN(torch.nn.Module):
         self.conv2 = GCNConv(hidden_sizes, nclass,
                              cached=True, normalize=not use_gdc)
 
-    def forward(self, x, edge_index, edge_attr=None):
-        x = F.relu(self.conv1(x, edge_index, edge_attr))
+    def forward(self, x, edge_index, edge_attr=None, params=None):
+        x = self.conv1(x, edge_index, edge_attr, params)
+        x = F.relu(x)
         x = F.dropout(x, training=self.training)
         final = self.conv2(x, edge_index, edge_attr)
         return final, F.log_softmax(final, dim=1)
