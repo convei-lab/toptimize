@@ -36,7 +36,7 @@ parser.add_argument('-te', '--total_epoch', default=300, type=int)
 parser.add_argument('-s', '--seed', default=0, type=int)
 parser.add_argument('-hs', '--hidden_sizes', default=None, type=int)
 parser.add_argument('-l1', '--lambda1', default=1, type=float)
-parser.add_argument('-2', '--lambda2', default=10, type=float)
+parser.add_argument('-l2', '--lambda2', default=10, type=float)
 parser.add_argument('-t', '--tau', default=10, type=float)
 parser.add_argument('-n', '--beta', default=-3, type=float)
 parser.add_argument('-csr', '--cold_start_ratio', default=1.0, type=float)
@@ -96,6 +96,7 @@ if use_metric:
 for run in list(range(total_run)):
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@ RUN',
           run, ' @@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+
 
     # Directories
     run_name = 'run_' + str(run)
@@ -165,6 +166,8 @@ for run in list(range(total_run)):
     base_vals.append(val_acc)
     base_tests.append(test_acc)
 
+    trainer.save_model(run_dir / ('model_'+str(step)+'.pt'), data)
+    
     if eval_topo:
         final, logit = trainer.infer()
         perf_stat = evaluate_experiment(
