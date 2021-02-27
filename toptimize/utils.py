@@ -16,12 +16,14 @@ from deeprobust.graph.defense import GCN
 from deeprobust.graph.global_attack import PGDAttack
 from deeprobust.graph.utils import add_self_loops, preprocess
 from scipy.sparse import csr_matrix
+import scipy.sparse as sp
 
 
 def load_data(data_path, dataset_name, device, use_gdc):
     # Data
     dataset = Planetoid(data_path, dataset_name,
                         transform=T.NormalizeFeatures())
+
     data = dataset[0].to(device)
     if use_gdc:
         gdc = T.GDC(self_loop_weight=1, normalization_in='sym',

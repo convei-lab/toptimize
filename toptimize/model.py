@@ -39,7 +39,8 @@ class GAT(torch.nn.Module):
         x = F.dropout(x, p=0.6, training=self.training)
         x = F.elu(self.conv1(x, edge_index))
         x = F.dropout(x, p=0.6, training=self.training)
-        final = self.conv2(x, edge_index)
+        final = F.elu(self.conv2(x, edge_index))
+        # final = self.conv2(x, edge_index)
         return final, F.log_softmax(final, dim=1)
 
 
@@ -88,14 +89,14 @@ class OurGAT(torch.nn.Module):
         self.nhead = nhead
         self.dropout = dropout
         self.conv1 = GAT4ConvSIGIR(
-            nfeat, hidden_sizes, alpha=alpha, beta=beta, heads=nhead, dropout=dropout)
+            nfeat, 4, alpha=alpha, beta=beta, heads=nhead, dropout=dropout)
         # On the Pubmed dataset, use heads=8 in conv2.
-        self.conv2 = GATConv(hidden_sizes * nhead, nclass, heads=1, concat=False,
+        self.conv2 = GATConv(4 * nhead, nclass, heads=1, concat=False,
                              dropout=dropout)
 
     def forward(self, x, edge_index, edge_attr):
         x = F.dropout(x, p=0.6, training=self.training)
         x = F.elu(self.conv1(x, edge_index))
         x = F.dropout(x, p=0.6, training=self.training)
-        final = self.conv2(x, edge_index)
+        final = F.elu(self.conv2(x, edge_index))
         return final, F.log_softmax(final, dim=1)
