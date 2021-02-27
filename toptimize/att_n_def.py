@@ -43,6 +43,7 @@ from utils import (
     log_step_perf,
     log_run_perf,
     log_hyperparameters,
+    sparse_pgd_attack,
     pgd_attack,
     superprint
 )
@@ -111,7 +112,8 @@ exp_dir = (cur_dir.parent / 'experiment' / exp_name).resolve()
 
 for attack_name in ['attack_ours', 'attack_base']:
 
-    attack_dir = (cur_dir.parent / 'attack' / exp_name / attack_name).resolve()
+    attack_dir = (cur_dir.parent / 'experiment/attack' /
+                  exp_name / attack_name).resolve()
     attack_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
     safe_remove_dir(attack_dir)
 
@@ -136,52 +138,30 @@ for attack_name in ['attack_ours', 'attack_base']:
         trainlog_path = attack_run_dir / 'train_log.txt'
         step_perf_path = attack_run_dir / 'step_perf.txt'
         run_perf_path = attack_dir / 'run_perf.txt'
+        gradlog_path = attack_run_dir / 'grad_fig.pdf'
 
         # Dataset
         dataset, data = load_data(dataset_path, dataset_name, device, use_gdc)
-        log_dataset_stat(data, dataset, datastat_path)
+        # log_dataset_stat(data, dataset, datastat_path)
         label = data.y
         one_hot_label = F.one_hot(data.y).float()
         adj = to_dense_adj(data.edge_index, max_num_nodes=data.num_nodes)[0]
         gold_adj = torch.matmul(one_hot_label, one_hot_label.T)
 
-        log_hyperparameters(args, hyper_path)
+        # log_hyperparameters(args, hyper_path)
 
         ###################################################
-        ############## Training Base Model ################
+        ################## Attack Model ###################
         ###################################################
-
-        step = 0
-
-        ###################################################
-        ############## Attacking Topology #################
-        ###################################################
-
-        if attack_name == 'attack_base':
-            if basemodel_name == 'GCN':
-                model = GCN(dataset.num_features, 16,
-                            dataset.num_classes).to(device)
-            else:
-                model = GAT(dataset.num_features, 8,
-                            dataset.num_classes).to(device)
-            optimizer = None
-            checkpoint_path = run_dir / ('model_0.pt')
-        elif attack_name == 'attack_ours':
-            if basemodel_name == 'GCN':
-                model = OurGCN(dataset.num_features, 16,
-                               dataset.num_classes, alpha=alpha, beta=beta).to(device)
-            else:
-                model = OurGAT(dataset.num_features, 8,
-                               dataset.num_classes, alpha=alpha, beta=beta).to(device)
-            optimizer = None
-            checkpoint_path = run_dir / ('model_1.pt')
-        log_model_architecture(step, model, optimizer,
-                               archi_path, overwrite=True)
         modified_adj = pgd_attack(
-            model, checkpoint_path, data, device, trainlog_path)
-        ###################################################
-        ################# End of Attack ###################
-        ###################################################
+            run_dir, dataset, attack_name, basemodel_name, alpha, data, trainlog_path, device=device,
+            gradlog_path=gradlog_path)
+        modified_adj = sparse_pgd_attack(
+            run_dir, dataset, attack_name, basemodel_name, alpha, data, trainlog_path, device=device)
+        ##################################################
+        ############## Training Base Model ###############
+        ##################################################
+        step = 0
 
         trainer = Trainer(model, data, device,
                           trainlog_path, optimizer=optimizer)

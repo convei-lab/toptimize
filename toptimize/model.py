@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv, GATConv  # noqa
 from torch_geometric.nn import GCN4ConvSIGIR, GAT4ConvSIGIR
+from torch_geometric.utils.sparse import dense_to_sparse
 
 
 class GCN(torch.nn.Module):
@@ -20,6 +21,15 @@ class GCN(torch.nn.Module):
         x = F.dropout(x, training=self.training)
         final = self.conv2(x, edge_index, edge_attr)
         return final, F.log_softmax(final, dim=1)
+    # def forward(self, x, edge_index, edge_attr):
+    #     i = edge_index
+    #     v = torch.ones_like(edge_index[0])
+    #     sp_adj = torch.sparse.FloatTensor(i, v, torch.Size([2708, 2708]))
+    #     with torch.autograd.detect_anomaly():
+    #         x = F.relu(self.conv1(x, sp_adj))
+    #     x = F.dropout(x, training=self.training)
+    #     final = self.conv2(x, sp_adj)
+    #     return final, F.log_softmax(final, dim=1)
 
 
 class GAT(torch.nn.Module):
@@ -68,15 +78,11 @@ class OurGCN(torch.nn.Module):
         self.conv2 = GCNConv(hidden_sizes, nclass,
                              cached=True, normalize=not use_gdc)
 
-    def forward(self, x, edge_index, edge_attr):
+    def forward(self, x, edge_index, edge_attr=None):
         x = F.relu(self.conv1(x, edge_index, edge_attr))
         x = F.dropout(x, training=self.training)
         final = self.conv2(x, edge_index, edge_attr)
         return final, F.log_softmax(final, dim=1)
-
-    def reset_cached(self):
-        self.conv1._cached_adj_t = None
-        self.conv1._cached_edge_index = None
 
 
 class OurGAT(torch.nn.Module):
@@ -93,7 +99,7 @@ class OurGAT(torch.nn.Module):
         self.conv2 = GATConv(hidden_sizes * nhead, nclass, heads=1, concat=False,
                              dropout=dropout)
 
-    def forward(self, x, edge_index, edge_attr):
+    def forward(self, x, edge_index, edge_attr=None):
         x = F.dropout(x, p=0.6, training=self.training)
         x = F.elu(self.conv1(x, edge_index))
         x = F.dropout(x, p=0.6, training=self.training)

@@ -33,6 +33,7 @@ parser.add_argument('-r', '--total_run', default=2, type=int)
 parser.add_argument('-t', '--total_step', default=5, type=int)
 parser.add_argument('-e', '--total_epoch', default=300, type=int)
 parser.add_argument('-s', '--seed', default=0, type=int)
+parser.add_argument('-hs', '--hidden_sizes', default=None, type=int)
 parser.add_argument('-l', '--lambda1', default=1, type=float)
 parser.add_argument('-k', '--lambda2', default=10, type=float)
 parser.add_argument('-m', '--alpha', default=10, type=float)
@@ -46,7 +47,7 @@ parser.add_argument('-w', '--use_wnb', action='store_true')
 parser.add_argument('-g', '--use_gdc', action='store_true',
                     help='Use GDC preprocessing for GCN.')
 parser.add_argument('-z', '--use_metric', action='store_true')
-parser.add_argument('-w', '--dont_save', action='store_false')
+parser.add_argument('-sm', '--save_model', action='store_true')
 args = parser.parse_args()
 
 exp_alias = args.exp_alias
@@ -56,6 +57,7 @@ total_run = args.total_run
 total_step = args.total_step
 total_epoch = args.total_epoch
 seed = args.seed
+hidden_sizes = args.hidden_sizes
 lambda1 = args.lambda1
 lambda2 = args.lambda2
 alpha = args.alpha
@@ -68,7 +70,7 @@ use_wnb = args.use_wnb
 drop_edge = args.drop_edge
 use_gdc = args.use_gdc
 use_metric = args.use_metric
-dont_save = args.dont_save
+save_model = args.save_model
 
 # random.seed(seed)
 # torch.manual_seed(seed)
@@ -137,13 +139,17 @@ for run in list(range(total_run)):
     step = 0
 
     if basemodel_name == 'GCN':
-        model = GCN(dataset.num_features, 16, dataset.num_classes).to(device)
+        hidden_sizes = hidden_sizes if hidden_sizes else 16
+        model = GCN(dataset.num_features, hidden_sizes,
+                    dataset.num_classes).to(device)
         optimizer = torch.optim.Adam([
             dict(params=model.conv1.parameters(), weight_decay=5e-4),
             dict(params=model.conv2.parameters(), weight_decay=0)
         ], lr=0.01)
     else:
-        model = GAT(dataset.num_features, 8, dataset.num_classes).to(device)
+        hidden_sizes = hidden_sizes if hidden_sizes else 8
+        model = GAT(dataset.num_features, hidden_sizes,
+                    dataset.num_classes).to(device)
         optimizer = torch.optim.Adam(
             model.parameters(), lr=0.01, weight_decay=5e-4)
     log_model_architecture(step, model, optimizer, archi_path, overwrite=True)
@@ -158,8 +164,6 @@ for run in list(range(total_run)):
             step, 300, lambda1, lambda2, use_last_epoch=False, use_loss_epoch=False)
     base_vals.append(val_acc)
     base_tests.append(test_acc)
-
-    final, logit = trainer.infer()
 
     if eval_topo:
         final, logit = trainer.infer()
@@ -190,7 +194,8 @@ for run in list(range(total_run)):
             wnb_run.watch(model, log='all')
 
         if basemodel_name == 'GCN':
-            model = OurGCN(dataset.num_features, 16,
+            hidden_sizes = hidden_sizes if hidden_sizes else 16
+            model = OurGCN(dataset.num_features, hidden_sizes,
                            dataset.num_classes, alpha=alpha, beta=beta).to(device)
             optimizer = torch.optim.Adam([
                 dict(params=model.conv1.parameters(), weight_decay=5e-4),
@@ -198,7 +203,8 @@ for run in list(range(total_run)):
             ], lr=0.01)
             link_pred = GCN4ConvSIGIR
         else:
-            model = OurGAT(dataset.num_features, 8,
+            hidden_sizes = hidden_sizes if hidden_sizes else 8
+            model = OurGAT(dataset.num_features, hidden_sizes,
                            dataset.num_classes, alpha=alpha, beta=beta).to(device)
             optimizer = torch.optim.Adam(
                 model.parameters(), lr=0.01, weight_decay=5e-4)
@@ -267,7 +273,7 @@ for run in list(range(total_run)):
             all_run_metric.append(metric)
         print('all_run_metric', all_run_metric, len(all_run_metric))
 
-    if not dont_save:
+    if not save_model:
         run_dir = exp_dir / ('run_' + str(run))
         for file in run_dir.iterdir():
             if file.suffix == '.pt':

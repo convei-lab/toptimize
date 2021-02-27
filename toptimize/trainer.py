@@ -135,9 +135,7 @@ class Trainer():
         with torch.no_grad():
             final, logit = self.model(
                 self.features, self.edge_index, self.edge_attr)
-            # print(self.model.state_dict())
-            # print(logit)
-            # print(self.edge_index.shape)
+
             accs = []
             for mask in [self.train_mask, self.val_mask, self.test_mask]:
                 pred = logit[mask].max(1)[1]
