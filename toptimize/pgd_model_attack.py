@@ -1,35 +1,8 @@
-
-# For run in runs:
-#   Load model in (Base, Ours)
-#       Attack Topology
-#       Train Base
-#       Train Ours
-#   Eval Base vs Ours in Baseline Attack
-#   Eval Base vs Ours in Ours Attack
-# Done
-#
-# Compare GCN vs Ours
-# ---------------------------------------------------------------------------------------------------------------------------------------
-# |       |                  Cora                   |                Cistseer                 |                 Pubmed                  |
-# ---------------------------------------------------------------------------------------------------------------------------------------
-# |       | Base Attack | Ours Attack |  Cold Start | Base Attack | Ours Attack |  Cold Start | Base Attack | Ours Attack |  Cold Start |
-# ---------------------------------------------------------------------------------------------------------------------------------------
-# |       |  GCN | Ours |  GCN | Ours |  GCN | Ours |  GCN | Ours |  GCN | Ours |  GCN | Ours |  GCN | Ours |  GCN | Ours |  GCN | Ours |
-# ---------------------------------------------------------------------------------------------------------------------------------------
-# | Run 0 |  70  |  80  |  70  |  80  |  60  |  70  |  70  |  80  |  70  |  80  |  60  |  70  |  70  |  80  |  70  |  80  |  60  |  70  |
-# ---------------------------------------------------------------------------------------------------------------------------------------
-# | Run 1 |  70  |  80  |  70  |  80  |  60  |  70  |  70  |  80  |  70  |  80  |  60  |  70  |  70  |  80  |  70  |  80  |  60  |  70  |
-# ---------------------------------------------------------------------------------------------------------------------------------------
-# |  ...  |  ..  |  ..  |  ..  |  ..  |  ..  |  ..  |  ..  |  ..  |  ..  |  ..  |  ..  |  ..  |  ..  |  ..  |  ..  |  ..  |  ..  |  ..  |
-# ---------------------------------------------------------------------------------------------------------------------------------------
-# | Runs  | 70+1 | 80+1 | 70+1 | 80+1 | 60+1 | 70+1 | 70+1 | 80+1 | 70+1 | 80+1 | 60+1 | 70+1 | 70+1 | 80+1 | 70+1 | 80+1 | 60+1 | 70+1 |
-# ---------------------------------------------------------------------------------------------------------------------------------------
+import sys
 import argparse
-from numpy.lib.function_base import append
 import torch
 import torch.nn.functional as F
 from torch_geometric.nn import GCN4ConvSIGIR, GAT4ConvSIGIR
-from torch_geometric.utils.sparse import dense_to_sparse
 from torch_geometric.utils import to_dense_adj
 import wandb
 import random
@@ -55,12 +28,13 @@ from utils import evaluate_experiment
 
 parser = argparse.ArgumentParser()
 parser.add_argument('exp_alias', type=str)
+parser.add_argument('att_alias', type=str)
 parser.add_argument('-b', '--basemodel', default='GCN', type=str)
 parser.add_argument('-d', '--dataset', default='Cora', type=str)
 parser.add_argument('-tr', '--total_run', default=2, type=int)
 parser.add_argument('-ts', '--total_step', default=5, type=int)
 parser.add_argument('-te', '--total_epoch', default=300, type=int)
-parser.add_argument('-s', '--seed', default=0, type=int)
+parser.add_argument('-s', '--seed', default=None, type=int)
 parser.add_argument('-hs', '--hidden_sizes', default=None, type=int)
 parser.add_argument('-l1', '--lambda1', default=1, type=float)
 parser.add_argument('-l2', '--lambda2', default=10, type=float)
@@ -79,7 +53,9 @@ parser.add_argument('-z', '--use_metric', action='store_true')
 parser.add_argument('-sm', '--save_model', action='store_true')
 args = parser.parse_args()
 
+args.seed = args.seed if args.seed else random.randint(0, 2**32 - 1)
 exp_alias = args.exp_alias
+att_alias = args.att_alias
 dataset_name = args.dataset
 basemodel_name = args.basemodel
 total_run = args.total_run
@@ -102,12 +78,12 @@ use_metric = args.use_metric
 save_model = args.save_model
 ptb_rate = args.ptb_rate
 
-# random.seed(seed)
-# torch.manual_seed(seed)
-# torch.cuda.manual_seed(seed)
-# np.random.seed(seed)
-# torch.backends.cudnn.deterministic = True
-# torch.backends.cudnn.benchmark = False
+random.seed(seed)
+torch.manual_seed(seed)
+torch.cuda.manual_seed(seed)
+np.random.seed(seed)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
@@ -118,8 +94,8 @@ exp_dir = (cur_dir.parent / 'experiment' / exp_name).resolve()
 
 for attack_name in ['attack_base', 'attack_ours']:
 
-    attack_dir = (cur_dir.parent / 'experiment/attack' /
-                  exp_name / attack_name).resolve()
+    attack_dir = (cur_dir.parent / 'experiment/pgd_attack' /
+                  exp_name / att_alias / attack_name).resolve()
     attack_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
     safe_remove_dir(attack_dir)
 
@@ -149,6 +125,7 @@ for attack_name in ['attack_base', 'attack_ours']:
         hyper_path = attack_dir / 'hyper.txt'
         datastat_path = attack_run_dir / 'data_stat.txt'
         archi_path = attack_dir / 'model_archi.txt'
+        attacklog_path = attack_run_dir / 'attack_log.txt'
         trainlog_path = attack_run_dir / 'train_log.txt'
         step_perf_path = attack_run_dir / 'step_perf.txt'
         run_perf_path = attack_dir / 'run_perf.txt'
@@ -164,12 +141,8 @@ for attack_name in ['attack_base', 'attack_ours']:
         node_degree = orig_adj.sum(dim=1)[0]
         ################## Attack Model ###################
         # data.edge_index = cold_start(data.edge_index, ratio=cold_start_ratio)
-        modified_adj = pgd_attack(
-            run_dir, dataset, attack_name, basemodel_name, alpha, trainlog_path, device=device,
-            gradlog_path=gradlog_path, ptb_rate=ptb_rate)
-        data.edge_index, data.edge_attr = dense_to_sparse(modified_adj)
-        print('Finished Attack')
-        input()
+        data.edge_index, data.edge_attr = pgd_attack(
+            run_dir, dataset, attack_name, basemodel_name, alpha, trainlog_path, attacklog_path, device=device, gradlog_path=gradlog_path, ptb_rate=ptb_rate)
         ###############  End of Attack Model ##############
         label = data.y
         one_hot_label = F.one_hot(data.y).float()
@@ -201,9 +174,6 @@ for attack_name in ['attack_base', 'attack_ours']:
 
         trainer = Trainer(model, data, device,
                           trainlog_path, optimizer=optimizer)
-        print('Baselike trainer.edge_index',
-              trainer.edge_index, trainer.edge_index.shape)
-        input()
 
         if basemodel_name == 'GCN':
             train_acc, val_acc, test_acc = trainer.fit(

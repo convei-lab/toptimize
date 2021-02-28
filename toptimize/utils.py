@@ -14,7 +14,6 @@ import matplotlib
 from deeprobust.graph.data import Dataset
 from deeprobust.graph.defense import GCN
 from deeprobust.graph.global_attack import PGDAttack
-from sparse_pgd_attack import SparsePGDAttack
 from deeprobust.graph.utils import add_self_loops, preprocess
 from scipy.sparse import csr_matrix
 from torch_geometric.nn import GCN4ConvSIGIR, GAT4ConvSIGIR
@@ -473,94 +472,98 @@ def log_run_perf(base_vals, base_tests, ours_vals, ours_tests, filename, noen_ou
         superprint(f'Test Accs {test_accs}', filename)
 
 
-def sparse_pgd_attack(run_dir, dataset, attack_name, basemodel_name, alpha, data, trainlog_path, ptb_rate=0.05, device='cpu'):
-    print('Device', device)
+# def sparse_pgd_attack(run_dir, dataset, attack_name, basemodel_name, alpha, data, trainlog_path, ptb_rate=0.05, device='cpu'):
+#     print('Device', device)
 
-    # Instantiating model
-    from model import GCN, GAT, OurGCN, OurGAT
-    if attack_name == 'attack_base':
-        if basemodel_name == 'GCN':
-            victim_model = GCN(dataset.num_features, 16,
-                               dataset.num_classes).to(device)
-        else:
-            victim_model = GAT(dataset.num_features, 8,
-                               dataset.num_classes).to(device)
-        checkpoint_step = 0
-    elif attack_name == 'attack_ours':
-        if basemodel_name == 'GCN':
-            victim_model = OurGCN(dataset.num_features, 16,
-                                  dataset.num_classes, alpha=alpha).to(device)
-        else:
-            victim_model = OurGAT(dataset.num_features, 8,
-                                  dataset.num_classes, alpha=alpha).to(device)
-        checkpoint_step = 5
-    victim_model = victim_model.to(device)
-    print('Victim model', victim_model)
+#     # Instantiating model
+#     from model import GCN, GAT, OurGCN, OurGAT
+#     if attack_name == 'attack_base':
+#         if basemodel_name == 'GCN':
+#             victim_model = GCN(dataset.num_features, 16,
+#                                dataset.num_classes).to(device)
+#         else:
+#             victim_model = GAT(dataset.num_features, 8,
+#                                dataset.num_classes).to(device)
+#         checkpoint_step = 0
+#     elif attack_name == 'attack_ours':
+#         if basemodel_name == 'GCN':
+#             victim_model = OurGCN(dataset.num_features, 16,
+#                                   dataset.num_classes, alpha=alpha).to(device)
+#         else:
+#             victim_model = OurGAT(dataset.num_features, 8,
+#                                   dataset.num_classes, alpha=alpha).to(device)
+#         checkpoint_step = 5
+#     victim_model = victim_model.to(device)
+#     print('Victim model', victim_model)
 
-    # Loading checkpoint
-    checkpoint_path = run_dir / ('model_'+str(checkpoint_step)+'.pt')
-    checkpoint = torch.load(checkpoint_path)
-    victim_model.load_state_dict(checkpoint['model'])
-    print('Loaded checkpoint:', checkpoint_path)
+#     # Loading checkpoint
+#     checkpoint_path = run_dir / ('model_'+str(checkpoint_step)+'.pt')
+#     checkpoint = torch.load(checkpoint_path)
+#     victim_model.load_state_dict(checkpoint['model'])
+#     print('Loaded checkpoint:', checkpoint_path)
 
-    from trainer import Trainer
-    # Testing with A
-    ori_data = dataset[0].to(device)
-    ori_adj = to_dense_adj(ori_data.edge_index, edge_attr=ori_data.edge_attr,
-                           max_num_nodes=ori_data.num_nodes)[0]
-    ori_trainer = Trainer(victim_model, ori_data, device, trainlog_path)
-    (ori_train_acc, ori_val_acc, ori_test_acc), ori_logit = ori_trainer.test()
-    print('Original Adjacency\n', ori_adj)
-    print('GNN(X, A)\n', ori_train_acc, ori_val_acc, ori_test_acc)
-    print(ori_logit)
+#     from trainer import Trainer
+#     # Testing with A
+#     ori_data = dataset[0].to(device)
+#     ori_adj = to_dense_adj(ori_data.edge_index, edge_attr=ori_data.edge_attr,
+#                            max_num_nodes=ori_data.num_nodes)[0]
+#     ori_trainer = Trainer(victim_model, ori_data, device, trainlog_path)
+#     (ori_train_acc, ori_val_acc, ori_test_acc), ori_logit = ori_trainer.test()
+#     print('Original Adjacency\n', ori_adj)
+#     print('GNN(X, A)\n', ori_train_acc, ori_val_acc, ori_test_acc)
+#     print(ori_logit)
 
-    # Testing with A'
-    aug_data = dataset[0].to(device)
-    aug_data.edge_index = checkpoint['edge_index']
-    aug_data.edge_attr = checkpoint['edge_attr']
-    aug_adj = to_dense_adj(aug_data.edge_index, edge_attr=aug_data.edge_attr,
-                           max_num_nodes=aug_data.num_nodes)[0].to(device)
-    aug_trainer = Trainer(victim_model, aug_data, device, trainlog_path)
-    (aug_train_acc, aug_val_acc, aug_test_acc), aug_logit = aug_trainer.test()
-    print('Diff sum (original adj vs augmented adj):',
-          (ori_adj != aug_adj).sum().item())
-    print('Original trainer', ori_trainer.edge_index.shape)
-    print('Augmented trainer', aug_trainer.edge_index.shape)
-    print('Augmented Adjacency\n', aug_adj)
-    print("GNN(X, A')\n", aug_train_acc, aug_val_acc, aug_test_acc)
-    print(aug_logit)
+#     # Testing with A'
+#     aug_data = dataset[0].to(device)
+#     aug_data.edge_index = checkpoint['edge_index']
+#     aug_data.edge_attr = checkpoint['edge_attr']
+#     aug_adj = to_dense_adj(aug_data.edge_index, edge_attr=aug_data.edge_attr,
+#                            max_num_nodes=aug_data.num_nodes)[0].to(device)
+#     aug_trainer = Trainer(victim_model, aug_data, device, trainlog_path)
+#     (aug_train_acc, aug_val_acc, aug_test_acc), aug_logit = aug_trainer.test()
+#     print('Diff sum (original adj vs augmented adj):',
+#           (ori_adj != aug_adj).sum().item())
+#     print('Original trainer', ori_trainer.edge_index.shape)
+#     print('Augmented trainer', aug_trainer.edge_index.shape)
+#     print('Augmented Adjacency\n', aug_adj)
+#     print("GNN(X, A')\n", aug_train_acc, aug_val_acc, aug_test_acc)
+#     print(aug_logit)
 
-    # Attack parameters
-    adj, features, labels = aug_adj, data.x, data.test_mask
-    idx_train, idx_val, idx_test = data.train_mask, data.val_mask, data.test_mask
-    perturbations = int(ptb_rate * (adj.sum()//2))
-    from deeprobust.graph.utils import to_scipy
-    adj, features, labels = preprocess(
-        to_scipy(adj), to_scipy(features), labels.long().cpu(), preprocess_adj=False, device=device)
+#     # Attack parameters
+#     adj, features, labels = aug_adj, data.x, data.test_mask
+#     idx_train, idx_val, idx_test = data.train_mask, data.val_mask, data.test_mask
+#     perturbations = int(ptb_rate * (adj.sum()//2))
+#     from deeprobust.graph.utils import to_scipy
+#     adj, features, labels = preprocess(
+#         to_scipy(adj), to_scipy(features), labels.long().cpu(), preprocess_adj=False, device=device)
 
-    # Setup attack model
-    attack_model = SparsePGDAttack(model=victim_model,
-                                   nnodes=adj.shape[0],
-                                   loss_type='CE',
-                                   device=device)
-    attack_model.attack(features, aug_data.edge_index, aug_data.edge_attr, labels,
-                        idx_train, n_perturbations=perturbations)
-    # attack_model.attack(features, adj, labels,
-    #                     idx_train, n_perturbations=perturbations)
-    modified_adj = attack_model.modified_adj
-    print('Modified_adj\n', modified_adj)
-    print('Diff sum', (modified_adj != adj).sum())
-    diff_idx = (modified_adj != adj).nonzero(as_tuple=False)
-    for i, (row, col) in enumerate(diff_idx):
-        if i < 3:
-            print('Different index: (', str(row.item())+',', str(col.item())+')', 'ori', adj[row][col].item(
-            ), '->', modified_adj[row][col].item())
+#     # Setup attack model
+#     attack_model = SparsePGDAttack(model=victim_model,
+#                                    nnodes=adj.shape[0],
+#                                    loss_type='CE',
+#                                    device=device)
+#     attack_model.attack(features, aug_data.edge_index, aug_data.edge_attr, labels,
+#                         idx_train, n_perturbations=perturbations)
+#     # attack_model.attack(features, adj, labels,
+#     #                     idx_train, n_perturbations=perturbations)
+#     modified_adj = attack_model.modified_adj
+#     print('Modified_adj\n', modified_adj)
+#     print('Diff sum', (modified_adj != adj).sum())
+#     diff_idx = (modified_adj != adj).nonzero(as_tuple=False)
+#     for i, (row, col) in enumerate(diff_idx):
+#         if i < 3:
+#             print('Different index: (', str(row.item())+',', str(col.item())+')', 'ori', adj[row][col].item(
+#             ), '->', modified_adj[row][col].item())
 
-    modified_edge_index, modified_edge_attr = dense_to_sparse(modified_adj)
-    return modified_edge_index, modified_edge_attr, modified_adj
+#     modified_edge_index, modified_edge_attr = dense_to_sparse(modified_adj)
+#     return modified_edge_index, modified_edge_attr, modified_adj
 
 
-def pgd_attack(run_dir, dataset, attack_name, basemodel_name, alpha, trainlog_path, ptb_rate=0.05, device='cpu', gradlog_path=None):
+def pgd_attack(run_dir, dataset, attack_name, basemodel_name, alpha, trainlog_path, filename, ptb_rate=0.05, device='cpu', gradlog_path=None):
+    global print
+    safe_remove_file(filename)
+    log = decorated_with(filename)(print)
+
     from trainer import Trainer
     from copy import deepcopy
     from deeprobust.graph.utils import to_scipy
@@ -569,7 +572,7 @@ def pgd_attack(run_dir, dataset, attack_name, basemodel_name, alpha, trainlog_pa
     checkpoint_step = 0 if attack_name == 'attack_base' else 5
     checkpoint_path = run_dir / ('model_'+str(checkpoint_step)+'.pt')
     checkpoint = torch.load(checkpoint_path)
-    print('Loaded checkpoint:', checkpoint_path)
+    log(f'Loaded checkpoint: {checkpoint_path}')
 
     # Loading Data
     data = dataset[0].to(device)
@@ -583,10 +586,9 @@ def pgd_attack(run_dir, dataset, attack_name, basemodel_name, alpha, trainlog_pa
                            max_num_nodes=ori_data.num_nodes)[0].to(device)
     aug_adj = to_dense_adj(aug_data.edge_index, edge_attr=aug_data.edge_attr,
                            max_num_nodes=aug_data.num_nodes)[0].to(device)
-    print('Original Adjacency\n', ori_adj)
-    print('Augmented Adjacency\n', aug_adj)
-    print('Diff in edges: original adjacency vs augmented adjacency):',
-          (ori_adj != aug_adj).sum().item())
+    log(f'Original Adjacency\n{ori_adj}', )
+    log(f'Augmented Adjacency\n{aug_adj}')
+    log(f'Diff in edges:{(ori_adj != aug_adj).sum().item()}',)
 
     # Setup victim model
     from model import GCN, GAT, OurGCN, OurGAT
@@ -609,23 +611,24 @@ def pgd_attack(run_dir, dataset, attack_name, basemodel_name, alpha, trainlog_pa
             link_pred = GAT4ConvSIGIR
     victim_model = victim_model.to(device)
     victim_model.load_state_dict(checkpoint['model'])
-    print('Victim model', victim_model)
+    log(f'Victim model{victim_model}')
 
     # Comparing the topology performance
     ori_trainer = Trainer(victim_model, ori_data, device, trainlog_path)
     aug_trainer = Trainer(victim_model, aug_data, device, trainlog_path)
     (ori_train_acc, ori_val_acc, ori_test_acc), ori_logit = ori_trainer.test()
     (aug_train_acc, aug_val_acc, aug_test_acc), aug_logit = aug_trainer.test()
-    print('Edge index in original trainer', ori_trainer.edge_index.shape)
-    print('Edge index in augmented trainer', aug_trainer.edge_index.shape)
-    print('GNN(X, A)\n', ori_train_acc, ori_val_acc, ori_test_acc)
-    print("GNN(X, A')\n", aug_train_acc, aug_val_acc, aug_test_acc)
-    print('Logit with A', ori_logit)
-    print("Logit with A'", aug_logit)
+    log(f'Edge index in original trainer: {ori_trainer.edge_index.shape}')
+    log(f'Edge index in augmented trainer: {aug_trainer.edge_index.shape}')
+    log(f'GNN(X, A)  Train {ori_train_acc} Val {ori_val_acc} Test {ori_test_acc}')
+    log(f"GNN(X, A') Train {aug_train_acc} Val {aug_val_acc} Test {aug_test_acc}")
+    log(f'Logit with A\n{ori_logit}')
+    log(f"Logit with A'\n{aug_logit}")
 
     # Setup attack model
     perturbations = int(ptb_rate * (aug_adj.sum()//2))
-    print('Targeted number of edge perturbations')
+    log(f'Total number of edge: {int(aug_adj.sum())}')
+    log(f'Targeted number of edge perturbations: {perturbations}')
     adj, features, labels, idx_train = aug_adj, aug_data.x, aug_data.y, aug_data.train_mask
     adj, features, labels = to_scipy(adj), to_scipy(features), labels.cpu()
     adj, features, labels = preprocess(adj, features, labels, device=device)
@@ -634,18 +637,21 @@ def pgd_attack(run_dir, dataset, attack_name, basemodel_name, alpha, trainlog_pa
                              loss_type='CE',
                              device=device)
     attack_model.geometric_attack(features, adj, labels,
-                                  idx_train, perturbations, aug_trainer, link_pred=link_pred, gradlog_path=gradlog_path)
-    modified_adj = attack_model.modified_adj
+                                  idx_train, perturbations, aug_trainer, gradlog_path=gradlog_path)
+    attacked_adj = attack_model.modified_adj
+    attacked_edge_index, attacked_edge_attr = dense_to_sparse(attacked_adj)
 
-    print('Modified_adj\n', modified_adj)
-    print('Diff sum', (modified_adj != adj).sum())
-    diff_idx = (modified_adj != adj).nonzero(as_tuple=False)
+    log(f'Modified adjecency\n{attacked_adj}')
+    log(f'Different edge number: {int((attacked_adj != adj).sum())}')
+    diff_idx = (attacked_adj != adj).nonzero(as_tuple=False)
     for i, (row, col) in enumerate(diff_idx):
         if i < 3:
-            print('Different index: (', str(row.item())+',', str(col.item())+')', 'ori', adj[row][col].item(
-            ), '->', modified_adj[row][col].item())
-    input()
-    return modified_adj
+            log(
+                f'\tExample edge {i}: ({row.item()}, {col.item()}) {adj[row][col].item()} -> {attacked_adj[row][col].item()}')
+    log(f'Attacked edge endex: {attacked_edge_index.shape}')
+    log(f'Attacked edge attr: {attacked_edge_attr.shape}')
+
+    return attacked_edge_index, attacked_edge_attr
 
 
 def eval_metric(new_edge_index, gold_adj, node_degree, log_filename, fig_filename):

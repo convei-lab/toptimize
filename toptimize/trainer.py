@@ -112,8 +112,6 @@ class Trainer():
     def save_model(self, filename, topo_holder):
         self.checkpoint['edge_index'] = topo_holder.edge_index.clone().detach()
         self.checkpoint['edge_attr'] = topo_holder.edge_attr if topo_holder.edge_attr is not None else None
-        self.checkpoint['adj'] = to_dense_adj(
-            topo_holder.edge_index, max_num_nodes=self.max_num_nodes)[0].clone().detach()
         print('Saving Model '+str('='*40))
         torch.save(self.checkpoint, filename)
         print('Saved as', filename)
