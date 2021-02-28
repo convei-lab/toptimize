@@ -113,8 +113,9 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 cur_dir = Path(__file__).resolve().parent
 victim_dir = (cur_dir.parent / 'experiment' / victim_name).resolve()
 
+attack_name = f"{att_alias}-{victim_name}-r{victim_max_run}-m{victim_model_step}-t{victim_topo_step}"
 attack_dir = (cur_dir.parent / 'experiment' / attack_type /
-              victim_name / att_alias).resolve()
+              victim_name / attack_name).resolve()
 attack_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
 safe_remove_dir(attack_dir)
 
@@ -128,8 +129,6 @@ if use_metric:
 for run in list(range(victim_max_run+1)):
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@ RUN',
           run, ' @@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-
-    attack_name = f"{victim_name}_r{run}_m{victim_model_step}_t{victim_topo_step}"
 
     # Directories
     run_name = 'run_' + str(run)
@@ -294,7 +293,7 @@ for run in list(range(victim_max_run+1)):
             perf_stat = evaluate_experiment(
                 step, final, label, adj, gold_adj, confmat_dir, topofig_dir, tsne_dir, prev_stat)
         superprint(
-            f'Ensembled Train {train_acc} Val {val_acc} Test {test_acc}', trainlog_path)
+            f'\nRun {run} Ensembled Train {train_acc} Val {val_acc} Test {test_acc}', trainlog_path)
 
         step_vals.append(val_acc)
         step_tests.append(test_acc)

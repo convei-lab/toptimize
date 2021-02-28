@@ -508,7 +508,6 @@ def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, pt
     elif vic_basemodel_name == 'TAD_GAT':
         victim_model = OurGAT(dataset.num_features, 8,
                               dataset.num_classes).to(device)
-    log(vic_basemodel_name)
 
     model_ckpt = torch.load(model_ckpt_path)
     victim_model.load_state_dict(model_ckpt['model'])
@@ -530,8 +529,8 @@ def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, pt
         ori_data = deepcopy(data)
         ori_adj = to_dense_adj(ori_data.edge_index, edge_attr=ori_data.edge_attr,
                                max_num_nodes=ori_data.num_nodes)[0].to(device)
-        log(f'Original Adjacency\n{ori_adj}', )
-        log(f'Augmented Adjacency\n{aug_adj}')
+        log(f'Original Adjacency\n{ori_adj} {ori_adj.shape}', )
+        log(f'Augmented Adjacency\n{aug_adj {aug_adj.shape}}')
         log(f'Diff in edges:{(ori_adj != aug_adj).sum().item()}',)
 
         # Comparing the topology performance

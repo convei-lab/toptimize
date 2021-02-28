@@ -96,7 +96,7 @@ noen_our_vals, noen_our_tests = [], []
 if use_metric:
     all_run_metric = []
 
-for run in list(range(total_run)):
+for run in list(range(total_run+1)):
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@ RUN',
           run, ' @@@@@@@@@@@@@@@@@@@@@@@@@@@@')
 
@@ -249,7 +249,7 @@ for run in list(range(total_run)):
         step_vals.append(val_acc)
         step_tests.append(test_acc)
         superprint(
-            f'Ensembled Train {train_acc} Val {val_acc} Test {test_acc}', trainlog_path)
+            f'\nRun {run} Ensembled Train {train_acc} Val {val_acc} Test {test_acc}', trainlog_path)
 
         if use_wnb:
             if eval_topo:
