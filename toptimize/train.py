@@ -97,7 +97,6 @@ for run in list(range(total_run)):
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@ RUN',
           run, ' @@@@@@@@@@@@@@@@@@@@@@@@@@@@')
 
-
     # Directories
     run_name = 'run_' + str(run)
     run_dir = exp_dir / ('run_' + str(run))
@@ -167,7 +166,7 @@ for run in list(range(total_run)):
     base_tests.append(test_acc)
 
     trainer.save_model(run_dir / ('model_'+str(step)+'.pt'), data)
-    
+
     if eval_topo:
         final, logit = trainer.infer()
         perf_stat = evaluate_experiment(
@@ -239,11 +238,11 @@ for run in list(range(total_run)):
             final, logit = trainer.infer()
             perf_stat = evaluate_experiment(
                 step, final, label, adj, gold_adj, confmat_dir, topofig_dir, tsne_dir, prev_stat)
-        superprint(
-            f'Ensembled Train {train_acc} Val {val_acc} Test {test_acc}', trainlog_path)
 
         step_vals.append(val_acc)
         step_tests.append(test_acc)
+        superprint(
+            f'Ensembled Train {train_acc} Val {val_acc} Test {test_acc}', trainlog_path)
 
         if use_wnb:
             if eval_topo:
@@ -283,4 +282,4 @@ for run in list(range(total_run)):
                 file.unlink()
 
 log_run_perf(base_vals, base_tests, our_vals, our_tests,
-             noen_our_vals, noen_our_tests, run_perf_path)
+             run_perf_path, noen_our_vals, noen_our_tests)

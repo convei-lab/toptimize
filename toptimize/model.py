@@ -16,8 +16,13 @@ class GCN(torch.nn.Module):
                              cached=cached, normalize=not use_gdc)
         self.conv2 = GCNConv(hidden_sizes, nclass,
                              cached=cached, normalize=not use_gdc)
+        if not cached:
+            self.conv1._cached_edge_index = None
+            self.conv1._cached_adj_t = None
+            self.conv2._cached_edge_index = None
+            self.conv2._cached_adj_t = None
 
-    def forward(self, x, edge_index, edge_attr):
+    def forward(self, x, edge_index, edge_attr=None):
         x = F.relu(self.conv1(x, edge_index, edge_attr))
         x = F.dropout(x, training=self.training)
         final = self.conv2(x, edge_index, edge_attr)
@@ -46,7 +51,7 @@ class GAT(torch.nn.Module):
         self.conv2 = GATConv(hidden_sizes * nhead, nclass, heads=1, concat=False,
                              dropout=dropout)
 
-    def forward(self, x, edge_index, edge_attr):
+    def forward(self, x, edge_index, edge_attr=None):
         x = F.dropout(x, p=0.6, training=self.training)
         x = F.elu(self.conv1(x, edge_index))
         x = F.dropout(x, p=0.6, training=self.training)
@@ -79,10 +84,14 @@ class OurGCN(torch.nn.Module):
             nfeat, hidden_sizes, cached=cached, alpha=alpha, beta=beta, normalize=not use_gdc)
         self.conv2 = GCNConv(hidden_sizes, nclass,
                              cached=cached, normalize=not use_gdc)
+        if not cached:
+            self.conv1._cached_edge_index = None
+            self.conv1._cached_adj_t = None
+            self.conv2._cached_edge_index = None
+            self.conv2._cached_adj_t = None
 
-    def forward(self, x, edge_index, edge_attr=None, params=None):
-        x = self.conv1(x, edge_index, edge_attr, params)
-        x = F.relu(x)
+    def forward(self, x, edge_index, edge_attr=None):
+        x = F.relu(self.conv1(x, edge_index, edge_attr))
         x = F.dropout(x, training=self.training)
         final = self.conv2(x, edge_index, edge_attr)
         return final, F.log_softmax(final, dim=1)
