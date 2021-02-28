@@ -13,7 +13,7 @@ from utils import (
 
 
 class Trainer():
-    def __init__(self, model, data, device, trainlog_path, optimizer=None):
+    def __init__(self, model, data, device, trainlog_path=None, optimizer=None):
         self.model = model
         self.optimizer = optimizer
         self.label = data.y

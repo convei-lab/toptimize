@@ -17,6 +17,7 @@ from deeprobust.graph.global_attack import PGDAttack
 from deeprobust.graph.utils import add_self_loops, preprocess
 from scipy.sparse import csr_matrix
 from torch_geometric.nn import GCN4ConvSIGIR, GAT4ConvSIGIR
+from copy import deepcopy
 
 
 def load_data(data_path, dataset_name, device, use_gdc):
@@ -474,71 +475,78 @@ def log_run_perf(base_vals, base_tests, ours_vals, ours_tests, filename, noen_ou
         superprint(f'Test Accs {test_accs}', filename)
 
 
-def pgd_attack(run_dir, dataset, attack_name, basemodel_name, alpha, trainlog_path, filename, ptb_rate=0.05, device='cpu', gradlog_path=None):
+def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, ptb_rate=0.05, device='cpu', compare_ori=False, gradlog_path=None):
     global print
-    safe_remove_file(filename)
-    log = decorated_with(filename)(print)
+    safe_remove_file(attacklog_path)
+    log = decorated_with(attacklog_path)(print)
 
-    from trainer import Trainer
-    from copy import deepcopy
     from deeprobust.graph.utils import to_scipy
 
-    # Loading checkpoint
-    checkpoint_step = 0 if attack_name == 'attack_base' else 5
-    checkpoint_path = run_dir / ('model_'+str(checkpoint_step)+'.pt')
-    checkpoint = torch.load(checkpoint_path)
-    log(f'Loaded checkpoint: {checkpoint_path}')
+    model_ckpt_path, topo_ckpt_path = victim_ckpt_path
+    import re
 
-    # Loading Data
-    data = dataset[0].to(device)
-    ori_data = deepcopy(data)
-    aug_data = deepcopy(data)
-    aug_data.edge_index = checkpoint['edge_index']
-    aug_data.edge_attr = checkpoint['edge_attr']
+    s = re.search(".*?_([0-9]*).pt", str(model_ckpt_path))
+    if s:
+        model_step = int(s.group(1))
+    if model_step != 0:
+        vic_basemodel_name = 'TAD_' + vic_basemodel_name
 
-    # Comparing the topology stat
-    ori_adj = to_dense_adj(ori_data.edge_index, edge_attr=ori_data.edge_attr,
-                           max_num_nodes=ori_data.num_nodes)[0].to(device)
-    aug_adj = to_dense_adj(aug_data.edge_index, edge_attr=aug_data.edge_attr,
-                           max_num_nodes=aug_data.num_nodes)[0].to(device)
-    log(f'Original Adjacency\n{ori_adj}', )
-    log(f'Augmented Adjacency\n{aug_adj}')
-    log(f'Diff in edges:{(ori_adj != aug_adj).sum().item()}',)
+    log(
+        f'Attacking {vic_basemodel_name} with topology A_{str(topo_ckpt_path).rsplit("_", 1)[1]}')
 
     # Setup victim model
     from model import GCN, GAT, OurGCN, OurGAT
-    if attack_name == 'attack_base':
-        if basemodel_name == 'GCN':
-            victim_model = GCN(dataset.num_features, 16,
-                               dataset.num_classes, cached=False).to(device)
-        else:
-            victim_model = GAT(dataset.num_features, 8,
-                               dataset.num_classes).to(device)
-        link_pred = None
-    elif attack_name == 'attack_ours':
-        if basemodel_name == 'GCN':
-            victim_model = OurGCN(dataset.num_features, 16,
-                                  dataset.num_classes, alpha=alpha, cached=False).to(device)
-            link_pred = GCN4ConvSIGIR
-        else:
-            victim_model = OurGAT(dataset.num_features, 8,
-                                  dataset.num_classes, alpha=alpha).to(device)
-            link_pred = GAT4ConvSIGIR
-    victim_model = victim_model.to(device)
-    victim_model.load_state_dict(checkpoint['model'])
-    log(f'Victim model{victim_model}')
+    if vic_basemodel_name == 'GCN':
+        victim_model = GCN(dataset.num_features, 16,
+                           dataset.num_classes, cached=False).to(device)
+    elif vic_basemodel_name == 'GAT':
+        victim_model = GAT(dataset.num_features, 8,
+                           dataset.num_classes).to(device)
+    elif vic_basemodel_name == 'TAD_GCN':
+        victim_model = OurGCN(dataset.num_features, 16,
+                              dataset.num_classes, cached=False).to(device)
+    elif vic_basemodel_name == 'TAD_GAT':
+        victim_model = OurGAT(dataset.num_features, 8,
+                              dataset.num_classes).to(device)
+    log(vic_basemodel_name)
 
-    # Comparing the topology performance
-    ori_trainer = Trainer(victim_model, ori_data, device, trainlog_path)
-    aug_trainer = Trainer(victim_model, aug_data, device, trainlog_path)
-    (ori_train_acc, ori_val_acc, ori_test_acc), ori_logit = ori_trainer.test()
-    (aug_train_acc, aug_val_acc, aug_test_acc), aug_logit = aug_trainer.test()
-    log(f'Edge index in original trainer: {ori_trainer.edge_index.shape}')
-    log(f'Edge index in augmented trainer: {aug_trainer.edge_index.shape}')
-    log(f'GNN(X, A)  Train {ori_train_acc} Val {ori_val_acc} Test {ori_test_acc}')
-    log(f"GNN(X, A') Train {aug_train_acc} Val {aug_val_acc} Test {aug_test_acc}")
-    log(f'Logit with A\n{ori_logit}')
-    log(f"Logit with A'\n{aug_logit}")
+    model_ckpt = torch.load(model_ckpt_path)
+    victim_model.load_state_dict(model_ckpt['model'])
+    victim_model = victim_model.to(device)
+    log(f'Loaded victim model {victim_model} from checkpoint: {model_ckpt_path}')
+
+    # Loading topology
+    data = dataset[0].to(device)
+    aug_data = deepcopy(data)
+    topo_ckpt = torch.load(topo_ckpt_path)
+    aug_data.edge_index = topo_ckpt['edge_index']
+    aug_data.edge_attr = topo_ckpt['edge_attr']
+    aug_adj = to_dense_adj(aug_data.edge_index, edge_attr=aug_data.edge_attr,
+                           max_num_nodes=aug_data.num_nodes)[0].to(device)
+    log(f'Loaded topology from checkpoint: {topo_ckpt_path}')
+
+    # Comparing attacked topology to original
+    if compare_ori:
+        ori_data = deepcopy(data)
+        ori_adj = to_dense_adj(ori_data.edge_index, edge_attr=ori_data.edge_attr,
+                               max_num_nodes=ori_data.num_nodes)[0].to(device)
+        log(f'Original Adjacency\n{ori_adj}', )
+        log(f'Augmented Adjacency\n{aug_adj}')
+        log(f'Diff in edges:{(ori_adj != aug_adj).sum().item()}',)
+
+        # Comparing the topology performance
+        if True:
+            pass
+            # ori_trainer = Trainer(victim_model, ori_data, device)
+            # aug_trainer = Trainer(victim_model, aug_data, device)
+            # (ori_train_acc, ori_val_acc, ori_test_acc), ori_logit = ori_trainer.test()
+            # (aug_train_acc, aug_val_acc, aug_test_acc), aug_logit = aug_trainer.test()
+            # log(f'Edge index in original trainer: {ori_trainer.edge_index.shape}')
+            # log(f'Edge index in augmented trainer: {aug_trainer.edge_index.shape}')
+            # log(f'GNN(X, A)  Train {ori_train_acc} Val {ori_val_acc} Test {ori_test_acc}')
+            # log(f"GNN(X, A') Train {aug_train_acc} Val {aug_val_acc} Test {aug_test_acc}")
+            # log(f'Logit with A\n{ori_logit}')
+            # log(f"Logit with A'\n{aug_logit}")
 
     # Setup attack model
     perturbations = int(ptb_rate * (aug_adj.sum()//2))
@@ -552,7 +560,7 @@ def pgd_attack(run_dir, dataset, attack_name, basemodel_name, alpha, trainlog_pa
                              loss_type='CE',
                              device=device)
     attack_model.geometric_attack(features, adj, labels,
-                                  idx_train, perturbations, aug_trainer, gradlog_path=gradlog_path)
+                                  idx_train, perturbations, gradlog_path=gradlog_path)
     attacked_adj = attack_model.modified_adj
     attacked_edge_index, attacked_edge_attr = dense_to_sparse(attacked_adj)
 
