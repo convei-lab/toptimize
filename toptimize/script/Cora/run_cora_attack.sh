@@ -5,7 +5,8 @@ cd /data/brandon/toptimize/toptimize
 
 ## Ours
 # python train.py "Cora/no_drop_real" -b GCN -d Cora -tr 100 -t 10
-python train.py "dev2" -b GCN -d Cora -tr 1 -t 8 -te 300 -ts 20 -sm
+python train.py "dev3" -b GCN -d Cora -tr 20 -t 8 -te 300 -ts 20 -sm
+# python train.py "dev4" -b GCN -d Cora -tr 20 -t 7 -te 300 -ts 20 
 
 ## No LL
 # python train.py "Cora/no_drop_LL_real" -b GCN -d Cora -tr 100 -t 9999999 -l1 0
