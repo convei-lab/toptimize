@@ -20,13 +20,14 @@ cd /data/brandon/toptimize/toptimize
 # No LL
 
 # No DL
+python train.py "Pubmed/no_DL_paper" -b GAT -d Pubmed -tr 100 -t 5
 
 ### Cold Start ###
 
 # GCN (0.25, 0.50, 0.75)
-python train_pubmed.py "Coldstart/Pubmed/0.25_real" -b GCN -d Pubmed -tr 100 -t 12 -csr 0.25
-python train_pubmed.py "Coldstart/Pubmed/0.5_real" -b GCN -d Pubmed -tr 100 -t 12 -csr 0.5
-python train_pubmed.py "Coldstart/Pubmed/0.75_real" -b GCN -d Pubmed -tr 100 -t 12 -csr 0.75
+# python train_pubmed.py "Coldstart/Pubmed/0.25_real" -b GCN -d Pubmed -tr 100 -t 12 -csr 0.25
+# python train_pubmed.py "Coldstart/Pubmed/0.5_real" -b GCN -d Pubmed -tr 100 -t 12 -csr 0.5
+# python train_pubmed.py "Coldstart/Pubmed/0.75_real" -b GCN -d Pubmed -tr 100 -t 12 -csr 0.75
 # python train.py "Coldstart/Pubmed/0.50_real" -b GCN -d Pubmed -tr 50 -t 10 -csr 0.50
 # python train.py "Coldstart/Pubmed/0.75_real" -b GCN -d Pubmed -tr 50 -t 10 -csr 0.75
 

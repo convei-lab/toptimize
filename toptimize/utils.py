@@ -1,5 +1,5 @@
 from torch._C import dtype
-from torch_geometric.utils import to_dense_adj
+from torch_geometric.utils import to_dense_adj, negative_sampling
 from torch_geometric.utils.sparse import dense_to_sparse
 import torch
 import torch.nn.functional as F
@@ -368,6 +368,16 @@ def cold_start(edge_index, ratio=1):
     edge_index = edge_index[:, mask]
     return edge_index
 
+def add_random_edge(edge_index, num_nodes, ratio=1):
+    num_neg_samples = int(edge_index.size(1) * ratio)
+    neg_edge_index = negative_sampling(
+        edge_index=edge_index,
+        num_nodes=num_nodes,
+        num_neg_samples=num_neg_samples,
+    )
+    new_edge_index = torch.cat([edge_index, neg_edge_index], dim=1).long()
+    new_edge_attr = torch.ones_like(new_edge_index[0]).float()
+    return new_edge_index, new_edge_attr
 
 def log_hyperparameters(args, hyper_path):
     # Logging hyperparameters
@@ -413,7 +423,7 @@ def log_step_perf(val_accs, test_accs, noen_vals, noen_tests, filename):
     superprint(f'Test Accs {test_accs}', filename)
 
 
-def log_run_perf(base_vals, base_tests, ours_vals, ours_tests, noen_our_vals, noen_our_tests, filename):
+def log_run_perf(base_vals, base_tests, ours_vals, ours_tests,  filename, noen_our_vals=None, noen_our_tests=None):
     superprint(
         f'Run Performance Comparision {"="*40}', filename, overwrite=True)
 
@@ -445,19 +455,20 @@ def log_run_perf(base_vals, base_tests, ours_vals, ours_tests, noen_our_vals, no
     superprint(f'Vals Accs: {val_accs}', filename)
     superprint(f'Test Accs {test_accs}', filename)
 
-    val_accs = np.array(noen_our_vals)
-    mean_val = round(np.mean(noen_our_vals), 2)
-    std_val = round(np.std(noen_our_vals), 2)
+    if noen_our_vals and noen_our_tests:
+        val_accs = np.array(noen_our_vals)
+        mean_val = round(np.mean(noen_our_vals), 2)
+        std_val = round(np.std(noen_our_vals), 2)
 
-    test_accs = np.array(noen_our_tests)
-    mean_test = round(np.mean(noen_our_tests), 2)
-    std_test = round(np.std(noen_our_tests), 2)
+        test_accs = np.array(noen_our_tests)
+        mean_test = round(np.mean(noen_our_tests), 2)
+        std_test = round(np.std(noen_our_tests), 2)
 
-    superprint(f'No Ensemble Ours', filename)
-    superprint(f'Mean Val Acc: {mean_val} +/- {std_val}', filename)
-    superprint(f'Mean Test Acc: {mean_test} +/- {std_test}', filename)
-    superprint(f'Vals Accs: {val_accs}', filename)
-    superprint(f'Test Accs {test_accs}', filename)
+        superprint(f'No Ensemble Ours', filename)
+        superprint(f'Mean Val Acc: {mean_val} +/- {std_val}', filename)
+        superprint(f'Mean Test Acc: {mean_test} +/- {std_test}', filename)
+        superprint(f'Vals Accs: {val_accs}', filename)
+        superprint(f'Test Accs {test_accs}', filename)
 
 
 def sparse_pgd_attack(run_dir, dataset, attack_name, basemodel_name, alpha, data, trainlog_path, ptb_rate=0.05, device='cpu'):

@@ -167,7 +167,7 @@ for run in list(range(total_run)):
     base_tests.append(test_acc)
 
     trainer.save_model(run_dir / ('model_'+str(step)+'.pt'), data)
-    
+
     if eval_topo:
         final, logit = trainer.infer()
         perf_stat = evaluate_experiment(
@@ -283,4 +283,4 @@ for run in list(range(total_run)):
                 file.unlink()
 
 log_run_perf(base_vals, base_tests, our_vals, our_tests,
-             noen_our_vals, noen_our_tests, run_perf_path)
+             run_perf_path, noen_our_vals, noen_our_tests)

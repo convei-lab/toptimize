@@ -16,7 +16,10 @@ cd /data/brandon/toptimize/toptimize
 
 ## Ours
 # On Test
-python train.py "Cora/test_noselftraining" -b GCN -d Cora -tr 50 -t 10 -te 300 -et
+python train.py "Cora/ours_paper" -b GAT -d Cora -tr 100 -t 4
+# python train.py "Cora/no_drop_trial2" -b GAT -d Cora -tr 100 -t 4 -te 200 -hs 8
+# python train.py "Cora/no_drop_LL_trial2" -b GAT -d Cora -tr 100 -t 9999999999 -te 200 -hs 8 -l1 0
+# python train.py "Cora/no_drop_DL_trial2" -b GAT -d Cora -tr 100 -t 4 -te 200 -hs 8 -l2 0
 # python train.py "Cora/test_selftraining" -b GCN -d Cora -tr 50 -t 10 -te 300 -et
 # python train.py "Cora/no_drop_test1000" -b GAT -d Cora -tr 10 -t 4 -te 1000
 # python train.py "Cora/no_drop_sofar2" -b GAT -d Cora -tr 100 -t 10 -te 300
