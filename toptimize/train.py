@@ -21,7 +21,8 @@ from utils import (
     superprint,
     eval_metric,
     log_run_metric,
-    evaluate_experiment
+    evaluate_experiment,
+    compare_topology
 )
 from trainer import Trainer
 from model import GCN, GAT, OurGCN, OurGAT
@@ -49,6 +50,7 @@ parser.add_argument('-gdc', '--use_gdc', action='store_true',
                     help='Use GDC preprocessing for GCN.')
 parser.add_argument('-z', '--use_metric', action='store_true')
 parser.add_argument('-sm', '--save_model', action='store_true')
+parser.add_argument('-ea', '--eval_new_adj', action='store_true')
 args = parser.parse_args()
 
 exp_alias = args.exp_alias
@@ -72,6 +74,7 @@ drop_edge = args.drop_edge
 use_gdc = args.use_gdc
 use_metric = args.use_metric
 save_model = args.save_model
+eval_new_adj = args.eval_new_adj
 
 # random.seed(seed)
 # torch.manual_seed(seed)
@@ -209,7 +212,7 @@ for run in list(range(total_run)):
             model = OurGAT(dataset.num_features, hidden_sizes,
                            dataset.num_classes, alpha=alpha, beta=beta).to(device)
             optimizer = torch.optim.Adam(
-                model.parameters(), lr=0.005, weight_decay=0.0005)
+                model.parameters(), lr=0.005, weight_decay=5e-4)
             link_pred = GAT4ConvSIGIR
         log_model_architecture(step, model, optimizer, archi_path)
 
@@ -223,7 +226,7 @@ for run in list(range(total_run)):
         superprint(
             f'Non Ensembled Train {train_acc} Val {val_acc} Test {test_acc}', trainlog_path)
 
-        data.edge_index, data.edge_attr, adj, new_edge = trainer.augment_topology(
+        data.edge_index, data.edge_attr, adj, new_edge, new_adj = trainer.augment_topology(
             drop_edge=drop_edge)
 
         if use_metric:
@@ -232,6 +235,10 @@ for run in list(range(total_run)):
 
         trainer.save_model(run_dir / ('model_'+str(step)+'.pt'), data)
         train_acc, val_acc, test_acc = trainer.ensemble(run_dir)
+
+        if eval_new_adj:
+            compare_topology(new_adj, gold_adj, trainlog_path,
+                             add_loop=False, reset_log=False)
 
         if eval_topo:
             # TODO check if logit in test func is identical to the infer's
@@ -281,5 +288,5 @@ for run in list(range(total_run)):
             if file.suffix == '.pt':
                 file.unlink()
 
-log_run_perf(base_vals, base_tests, our_vals, our_tests,
-             run_perf_path, noen_our_vals, noen_our_tests)
+    log_run_perf(base_vals, base_tests, our_vals, our_tests,
+                 run_perf_path, noen_our_vals, noen_our_tests)
