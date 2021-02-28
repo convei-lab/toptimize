@@ -86,14 +86,13 @@ exp_name = exp_alias + '_' + dataset_name + '_' + basemodel_name
 exp_dir = (cur_dir.parent / 'experiment' / exp_name).resolve()
 
 
-attack_dir = (cur_dir.parent / 'experiment/random_attack' /
+attack_dir = (cur_dir.parent / 'experiment/random_model_attack' /
                   exp_name).resolve()
 attack_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
 safe_remove_dir(attack_dir)
 
-for runs in list(range(total_run)):
+for run in list(range(total_run)):
     # Directories
-    run=0
     run_name = 'run_' + str(run)
     run_dir = exp_dir / ('run_' + str(run))
     attack_run_dir = attack_dir / ('run_' + str(run))

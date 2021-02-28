@@ -17,7 +17,7 @@ cd /data/brandon/toptimize/toptimize
 # python train.py "Citeseer/no_drop_DL_real" -b GCN -d Citeseer -tr 100 -t 7 -l2 0
 
 ### GAT ###
-python train.py "Citeseer/Ours_dropout_LL" -b GAT -d Citeseer -tr 100 -ts 5 -t 9999999999 -l1 0 -l2 10 -hs 8
+# python train.py "Citeseer/Ours_dropout_LL" -b GAT -d Citeseer -tr 100 -ts 5 -t 9999999999 -l1 0 -l2 10 -hs 8
 # python train.py "Citeseer/no_LL_paper" -b GAT -d Citeseer -tr 100 -t 100000000 -l1 0
 
 ## Ours
