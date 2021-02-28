@@ -21,6 +21,7 @@ from utils import (
     eval_metric,
     log_run_metric,
     pgd_attack,
+    random_attack,
     compare_topology,
 )
 from trainer import Trainer
@@ -53,6 +54,7 @@ parser.add_argument('-t', '--tau', default=10, type=float)
 parser.add_argument('-n', '--beta', default=-3, type=float)
 parser.add_argument('-csr', '--cold_start_ratio', default=1.0, type=float)
 parser.add_argument('-ptb', '--ptb_rate', default=0.05, type=float)
+parser.add_argument('-ca', '--compare_attacked', action='store_true')
 parser.add_argument('-et', '--eval_topo', action='store_true',
                     help='Save confusion matrix, TSNE, and visualize topology.')
 parser.add_argument('-le', '--use_last_epoch', action='store_true',
@@ -99,6 +101,7 @@ use_gdc = args.use_gdc
 use_metric = args.use_metric
 save_model = args.save_model
 ptb_rate = args.ptb_rate
+compare_attacked = args.compare_attacked
 eval_new_adj = args.eval_new_adj
 
 random.seed(seed)
@@ -171,9 +174,10 @@ for run in list(range(victim_max_run+1)):
     data.edge_index = cold_start(data.edge_index, ratio=cold_start_ratio)
     if attack_type == 'pgd_attack':
         data.edge_index, data.edge_attr = pgd_attack(
-            dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, ptb_rate=ptb_rate, device=device, gradlog_path=gradlog_path, compare_ori=True)
+            dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, ptb_rate=ptb_rate, device=device, gradlog_path=gradlog_path, compare_attacked=compare_attacked)
     elif attack_type == 'random_attack':
-        pass
+        data.edge_index, data.edge_attr = random_attack(
+            dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, ptb_rate=ptb_rate, device=device, gradlog_path=gradlog_path, compare_attacked=compare_attacked)
     ###############  End of Attack Model ##############
     label = data.y
     one_hot_label = F.one_hot(data.y).float()
@@ -310,24 +314,26 @@ for run in list(range(victim_max_run+1)):
 
         print()
 
-    our_vals.append(val_acc)
-    our_tests.append(test_acc)
-    noen_our_vals.append(noen_val_acc)
-    noen_our_tests.append(noen_test_acc)
+    if total_step > 0:
+        our_vals.append(val_acc)
+        our_tests.append(test_acc)
+        noen_our_vals.append(noen_val_acc)
+        noen_our_tests.append(noen_test_acc)
 
-    log_step_perf(step_vals, step_tests, step_noen_vals,
-                  step_noen_tests, step_perf_path)
-    if use_metric:
-        if all_step_new_edge is not None:
-            print('all_step_new_edge', all_step_new_edge,
-                  all_step_new_edge.shape)
-            if all_step_new_edge.nelement() != 0:
-                metric = eval_metric(all_step_new_edge, gold_adj, node_degree,
-                                     metric_txt_path, metric_fig_path)
-            else:
-                metric = -1
-            all_run_metric.append(metric)
-        print('all_run_metric', all_run_metric, len(all_run_metric))
+        log_step_perf(step_vals, step_tests, step_noen_vals,
+                      step_noen_tests, step_perf_path)
+
+        if use_metric:
+            if all_step_new_edge is not None:
+                print('all_step_new_edge', all_step_new_edge,
+                      all_step_new_edge.shape)
+                if all_step_new_edge.nelement() != 0:
+                    metric = eval_metric(all_step_new_edge, gold_adj, node_degree,
+                                         metric_txt_path, metric_fig_path)
+                else:
+                    metric = -1
+                all_run_metric.append(metric)
+            print('all_run_metric', all_run_metric, len(all_run_metric))
 
     if not save_model:
         run_dir = attack_dir / ('run_' + str(run))

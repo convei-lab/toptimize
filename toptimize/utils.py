@@ -371,8 +371,8 @@ def cold_start(edge_index, ratio=1):
     return edge_index
 
 
-def add_random_edge(edge_index, num_nodes, ratio=1):
-    num_neg_samples = int(edge_index.size(1) * ratio)
+def add_random_edge(edge_index, num_nodes, ptb_rate=1):
+    num_neg_samples = int(edge_index.size(1) * ptb_rate)
     neg_edge_index = negative_sampling(
         edge_index=edge_index,
         num_nodes=num_nodes,
@@ -431,33 +431,35 @@ def log_run_perf(base_vals, base_tests, ours_vals, ours_tests, filename, noen_ou
     superprint(
         f'Run Performance Comparision {"="*40}', filename, overwrite=True)
 
-    val_accs = np.array(base_vals)
-    mean_val = round(np.mean(base_vals), 2)
-    std_val = round(np.std(base_vals), 2)
+    if base_vals and base_tests:
+        val_accs = np.array(base_vals)
+        mean_val = round(np.mean(base_vals), 2)
+        std_val = round(np.std(base_vals), 2)
 
-    test_accs = np.array(base_tests)
-    mean_test = round(np.mean(base_tests), 2)
-    std_test = round(np.std(base_tests), 2)
+        test_accs = np.array(base_tests)
+        mean_test = round(np.mean(base_tests), 2)
+        std_test = round(np.std(base_tests), 2)
 
-    superprint(f'Baseline', filename, overwrite=True)
-    superprint(f'Mean Val Acc: {mean_val} +/- {std_val}', filename)
-    superprint(f'Mean Test Acc: {mean_test} +/- {std_test}', filename)
-    superprint(f'Vals Accs: {val_accs}', filename)
-    superprint(f'Test Accs {test_accs}', filename)
+        superprint(f'Baseline', filename, overwrite=True)
+        superprint(f'Mean Val Acc: {mean_val} +/- {std_val}', filename)
+        superprint(f'Mean Test Acc: {mean_test} +/- {std_test}', filename)
+        superprint(f'Vals Accs: {val_accs}', filename)
+        superprint(f'Test Accs {test_accs}', filename)
 
-    val_accs = np.array(ours_vals)
-    mean_val = round(np.mean(ours_vals), 2)
-    std_val = round(np.std(ours_vals), 2)
+    if ours_vals and ours_tests:
+        val_accs = np.array(ours_vals)
+        mean_val = round(np.mean(ours_vals), 2)
+        std_val = round(np.std(ours_vals), 2)
 
-    test_accs = np.array(ours_tests)
-    mean_test = round(np.mean(ours_tests), 2)
-    std_test = round(np.std(ours_tests), 2)
+        test_accs = np.array(ours_tests)
+        mean_test = round(np.mean(ours_tests), 2)
+        std_test = round(np.std(ours_tests), 2)
 
-    superprint(f'Ours', filename)
-    superprint(f'Mean Val Acc: {mean_val} +/- {std_val}', filename)
-    superprint(f'Mean Test Acc: {mean_test} +/- {std_test}', filename)
-    superprint(f'Vals Accs: {val_accs}', filename)
-    superprint(f'Test Accs {test_accs}', filename)
+        superprint(f'Ours', filename)
+        superprint(f'Mean Val Acc: {mean_val} +/- {std_val}', filename)
+        superprint(f'Mean Test Acc: {mean_test} +/- {std_test}', filename)
+        superprint(f'Vals Accs: {val_accs}', filename)
+        superprint(f'Test Accs {test_accs}', filename)
 
     if noen_our_vals and noen_our_tests:
         val_accs = np.array(noen_our_vals)
@@ -475,7 +477,7 @@ def log_run_perf(base_vals, base_tests, ours_vals, ours_tests, filename, noen_ou
         superprint(f'Test Accs {test_accs}', filename)
 
 
-def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, ptb_rate=0.05, device='cpu', compare_ori=False, gradlog_path=None):
+def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, ptb_rate=0.05, device='cpu', compare_attacked=False, gradlog_path=None):
     global print
     safe_remove_file(attacklog_path)
     log = decorated_with(attacklog_path)(print)
@@ -525,13 +527,15 @@ def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, pt
     log(f'Loaded topology from checkpoint: {topo_ckpt_path}')
 
     # Comparing attacked topology to original
-    if compare_ori:
+    if compare_attacked:
         ori_data = deepcopy(data)
         ori_adj = to_dense_adj(ori_data.edge_index, edge_attr=ori_data.edge_attr,
                                max_num_nodes=ori_data.num_nodes)[0].to(device)
-        log(f'Original Adjacency\n{ori_adj} {ori_adj.shape}', )
-        log(f'Augmented Adjacency\n{aug_adj {aug_adj.shape}}')
-        log(f'Diff in edges:{(ori_adj != aug_adj).sum().item()}',)
+        log(f'Original adjacency\n{ori_adj} {ori_adj.shape}')
+        log(f'Original edge number: {int(ori_adj.sum())}')
+        log(f'Augmented adjacency\n{aug_adj} {aug_adj.shape}')
+        log(f'Augmented edge number: {int(aug_adj.sum())}')
+        log(f'Diff in edges:{(ori_adj != aug_adj).sum().item()}')
 
         # Comparing the topology performance
         if True:
@@ -563,15 +567,112 @@ def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, pt
     attacked_adj = attack_model.modified_adj
     attacked_edge_index, attacked_edge_attr = dense_to_sparse(attacked_adj)
 
-    log(f'Modified adjecency\n{attacked_adj}')
-    log(f'Different edge number: {int((attacked_adj != adj).sum())}')
-    diff_idx = (attacked_adj != adj).nonzero(as_tuple=False)
-    for i, (row, col) in enumerate(diff_idx):
-        if i < 3:
-            log(
-                f'\tExample edge {i}: ({row.item()}, {col.item()}) {adj[row][col].item()} -> {attacked_adj[row][col].item()}')
-    log(f'Attacked edge endex: {attacked_edge_index.shape}')
-    log(f'Attacked edge attr: {attacked_edge_attr.shape}')
+    if compare_attacked:
+        log(f'Attacked adjecency\n{attacked_adj} {attacked_adj.shape}')
+        log(f'Attacked edge number: {int(attacked_adj.sum())}')
+        log(f'Different edge number: {int((attacked_adj != aug_adj).sum())}')
+        diff_idx = (attacked_adj != adj).nonzero(as_tuple=False)
+        for i, (row, col) in enumerate(diff_idx):
+            if i < 3:
+                log(
+                    f'\tExample edge {i}: ({row.item()}, {col.item()}) {aug_adj[row][col].item()} -> {attacked_adj[row][col].item()}')
+        log(f'Attacked edge endex: {attacked_edge_index.shape}')
+        log(f'Attacked edge attr: {attacked_edge_attr.shape}')
+
+    return attacked_edge_index, attacked_edge_attr
+
+
+def random_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, ptb_rate=0.05, device='cpu', compare_attacked=False, gradlog_path=None):
+    global print
+    safe_remove_file(attacklog_path)
+    log = decorated_with(attacklog_path)(print)
+
+    from deeprobust.graph.utils import to_scipy
+
+    model_ckpt_path, topo_ckpt_path = victim_ckpt_path
+    import re
+
+    s = re.search(".*?_([0-9]*).pt", str(model_ckpt_path))
+    if s:
+        model_step = int(s.group(1))
+    if model_step != 0:
+        vic_basemodel_name = 'TAD_' + vic_basemodel_name
+
+    log(
+        f'Attacking {vic_basemodel_name} with topology A_{str(topo_ckpt_path).rsplit("_", 1)[1]}')
+
+    # Setup victim model
+    from model import GCN, GAT, OurGCN, OurGAT
+    if vic_basemodel_name == 'GCN':
+        victim_model = GCN(dataset.num_features, 16,
+                           dataset.num_classes, cached=False).to(device)
+    elif vic_basemodel_name == 'GAT':
+        victim_model = GAT(dataset.num_features, 8,
+                           dataset.num_classes).to(device)
+    elif vic_basemodel_name == 'TAD_GCN':
+        victim_model = OurGCN(dataset.num_features, 16,
+                              dataset.num_classes, cached=False).to(device)
+    elif vic_basemodel_name == 'TAD_GAT':
+        victim_model = OurGAT(dataset.num_features, 8,
+                              dataset.num_classes).to(device)
+
+    model_ckpt = torch.load(model_ckpt_path)
+    victim_model.load_state_dict(model_ckpt['model'])
+    victim_model = victim_model.to(device)
+    log(f'Loaded victim model {victim_model} from checkpoint: {model_ckpt_path}')
+
+    # Loading topology
+    data = dataset[0].to(device)
+    aug_data = deepcopy(data)
+    topo_ckpt = torch.load(topo_ckpt_path)
+    aug_data.edge_index = topo_ckpt['edge_index']
+    aug_data.edge_attr = topo_ckpt['edge_attr']
+    aug_adj = to_dense_adj(aug_data.edge_index, edge_attr=aug_data.edge_attr,
+                           max_num_nodes=aug_data.num_nodes)[0].to(device)
+    log(f'Loaded topology from checkpoint: {topo_ckpt_path}')
+
+    # Comparing attacked topology to original
+    if compare_attacked:
+        ori_data = deepcopy(data)
+        ori_adj = to_dense_adj(ori_data.edge_index, edge_attr=ori_data.edge_attr,
+                               max_num_nodes=ori_data.num_nodes)[0].to(device)
+        log(f'Original adjacency\n{ori_adj} {ori_adj.shape}')
+        log(f'Original edge number: {int(ori_adj.sum())}')
+        log(f'Augmented adjacency\n{aug_adj} {aug_adj.shape}')
+        log(f'Augmented edge number: {int(aug_adj.sum())}')
+        log(f'Diff in edges:{(ori_adj != aug_adj).sum().item()}',)
+
+        # Comparing the topology performance
+        if True:
+            pass
+            # ori_trainer = Trainer(victim_model, ori_data, device)
+            # aug_trainer = Trainer(victim_model, aug_data, device)
+            # (ori_train_acc, ori_val_acc, ori_test_acc), ori_logit = ori_trainer.test()
+            # (aug_train_acc, aug_val_acc, aug_test_acc), aug_logit = aug_trainer.test()
+            # log(f'Edge index in original trainer: {ori_trainer.edge_index.shape}')
+            # log(f'Edge index in augmented trainer: {aug_trainer.edge_index.shape}')
+            # log(f'GNN(X, A)  Train {ori_train_acc} Val {ori_val_acc} Test {ori_test_acc}')
+            # log(f"GNN(X, A') Train {aug_train_acc} Val {aug_val_acc} Test {aug_test_acc}")
+            # log(f'Logit with A\n{ori_logit}')
+            # log(f"Logit with A'\n{aug_logit}")
+
+    # Attack attack
+    attacked_edge_index, attacked_edge_attr = add_random_edge(
+        aug_data.edge_index, aug_data.num_nodes, ptb_rate=ptb_rate)
+    attacked_adj = to_dense_adj(
+        attacked_edge_index, edge_attr=attacked_edge_attr, max_num_nodes=aug_data.num_nodes)[0]
+
+    if compare_attacked:
+        log(f'Attacked adjecency\n{attacked_adj} {attacked_adj.shape}')
+        log(f'Augmented edge number: {int(aug_adj.sum())}')
+        log(f'Different edge number: {int((attacked_adj != aug_adj).sum())}')
+        diff_idx = (attacked_adj != ori_adj).nonzero(as_tuple=False)
+        for i, (row, col) in enumerate(diff_idx):
+            if i < 3:
+                log(
+                    f'\tExample edge {i}: ({row.item()}, {col.item()}) {aug_adj[row][col].item()} -> {attacked_adj[row][col].item()}')
+        log(f'Attacked edge endex: {attacked_edge_index.shape}')
+        log(f'Attacked edge attr: {attacked_edge_attr.shape}')
 
     return attacked_edge_index, attacked_edge_attr
 
@@ -612,10 +713,11 @@ def eval_metric(new_edge_index, gold_adj, node_degree, log_filename, fig_filenam
 
 
 def log_run_metric(metric, test_accs, filename):
-    superprint(
-        f'Metric: {metric}', filename, overwrite=True)
-    superprint(
-        f'Test: {test_accs}', filename)
+    if metric:
+        superprint(
+            f'Metric: {metric}', filename, overwrite=True)
+        superprint(
+            f'Test: {test_accs}', filename)
 
 
 def log_grad(target, params, gradlog_path=None):
