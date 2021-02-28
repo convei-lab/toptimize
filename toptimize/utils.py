@@ -1,5 +1,5 @@
 from torch._C import dtype
-from torch_geometric.utils import to_dense_adj
+from torch_geometric.utils import to_dense_adj, negative_sampling
 from torch_geometric.utils.sparse import dense_to_sparse
 import torch
 import torch.nn.functional as F
@@ -367,6 +367,18 @@ def cold_start(edge_index, ratio=1):
     mask = mask <= ratio
     edge_index = edge_index[:, mask]
     return edge_index
+
+
+def add_random_edge(edge_index, num_nodes, ratio=1):
+    num_neg_samples = int(edge_index.size(1) * ratio)
+    neg_edge_index = negative_sampling(
+        edge_index=edge_index,
+        num_nodes=num_nodes,
+        num_neg_samples=num_neg_samples,
+    )
+    new_edge_index = torch.cat([edge_index, neg_edge_index], dim=1).long()
+    new_edge_attr = torch.ones_like(new_edge_index[0]).float()
+    return new_edge_index, new_edge_attr
 
 
 def log_hyperparameters(args, hyper_path):

@@ -16,10 +16,11 @@ cd /data/brandon/toptimize/toptimize
 # python train.py "Citeseer/no_drop_DL_real" -b GCN -d Citeseer -tr 100 -t 7 -l2 0
 
 ### GAT ###
+python train.py "Citeseer/no_LL_paper" -b GAT -d Citeseer -tr 100 -t 100000000 -l 0
 
 ## Ours
 # python train.py "Citeseer/no_drop_test1" -b GAT -d Citeseer -tr 10 -t 1 -te 300 -ts 10
-python train.py "Citeseer/Ours_paper" -b GAT -d Citeseer -tr 100 -t 1
+
 ## No LL
 
 ## No DL

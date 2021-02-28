@@ -15,7 +15,9 @@ cd /data/brandon/toptimize/toptimize
 ### GAT ###
 
 # OURs
-python train.py "Citeseer/no_drop_tau_test3" -b GAT -d Citeseer -tr 10 -t 0.3 -te 300 -et
+python train.py "Citeseer/no_drop_trial2_hs8" -b GAT -d Citeseer -tr 100 -t 0.6 -te 200
+python train.py "Citeseer/no_drop_LL_trial2_hs8" -b GAT -d Citeseer -tr 100 -t 99999999 -te 200 -l1 0
+python train.py "Citeseer/no_drop_DL_trial2_hs8" -b GAT -d Citeseer -tr 100 -t 0.6 -te 200 -l2 0
 
 # No LL
 # python train.py "Citeseer/no_drop_LL_trial1" -b GAT -d Citeseer -tr 100 -t 100000000000 -te 300 -l1 0

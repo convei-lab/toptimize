@@ -4,7 +4,7 @@ cd /data/brandon/toptimize/toptimize
 ##### GCN #####
 
 ## Ours
-# python train.py "Cora/no_drop_gcn_trial2" -b GCN -d Cora -tr 100 -t  -te 200
+# python train.py "Cora/no_drop_gcn_trial2" -b GCN -d Cora -tr 100 -t 10 -te 200
 # python train.py "Cora/no_drop_LL_gcn_trial2" -b GCN -d Cora -tr 100 -t 8000000000 -l1 0 -te 200
 # python train.py "Cora/no_drop_DL_gcn_trial2" -b GCN -d Cora -tr 100 -t 8 -l2 0 -te 200
 
@@ -22,8 +22,7 @@ cd /data/brandon/toptimize/toptimize
 # python train.py "Cora/no_drop_test3" -b GAT -d Cora -tr 10 -t 3 -te 300
 # python train.py "Cora/no_drop_test9" -b GAT -d Cora -tr 10 -t 9 -te 300
 
-python train.py "Cora/no_LL_paper" -b GAT -d Cora -tr 100 -t 99999999 -l1 0
-
+python train.py "Cora/no_DL_paper" -b GAT -d Cora -tr 100 -t 4 -l2 0
 ## No LL
 
 ## No DL
