@@ -14,7 +14,6 @@ import matplotlib
 from deeprobust.graph.data import Dataset
 from deeprobust.graph.defense import GCN
 from deeprobust.graph.global_attack import PGDAttack
-from sparse_pgd_attack import SparsePGDAttack
 from deeprobust.graph.utils import add_self_loops, preprocess
 from scipy.sparse import csr_matrix
 from torch_geometric.nn import GCN4ConvSIGIR, GAT4ConvSIGIR
@@ -160,17 +159,18 @@ def percentage(float_zero_to_one):
     return round(float_zero_to_one * 100, 2)
 
 
-def compare_topology(in_adj, gold_adj, log_filename, fig_filename, add_loop=True):
+def compare_topology(in_adj, gold_adj, log_filename, fig_filename=None, add_loop=True, reset_log=True):
     global print
-    safe_remove_file(log_filename)
+    if reset_log:
+        safe_remove_file(log_filename)
     log = decorated_with(log_filename)(print)
 
     print('Confusion Matrix '+str('='*40))
 
     adj = in_adj.clone()
+    gold_adj = gold_adj.clone()
     if add_loop:
         adj.fill_diagonal_(1)
-    gold_adj = gold_adj.clone()
 
     flat_adj = adj.detach().cpu().view(-1)
     flat_gold_adj = gold_adj.detach().cpu().view(-1)
@@ -189,15 +189,15 @@ def compare_topology(in_adj, gold_adj, log_filename, fig_filename, add_loop=True
     tnr = percentage(tnr)
     f1 = percentage(f1)
 
+    log(f'Precision: {ppv}% # TP/(TP+FP)')
+    log(f'Recall: {tpr}% # TP/P')
+    log(f'F1 Score: {f1}%')
+    log(f'Negative Predictive Value: {npv}% # TN/(TN+FN)')
+    log(f'Selectivity: {tnr}% # TN/N')
     log(f'True Positive: {tp}')
     log(f'False Positive: {fp}')
     log(f'True Negative: {tn}')
     log(f'False Negative: {fn}')
-    log(f'Precision: {ppv}% # TP/(TP+FP)')
-    log(f'Negative Predictive Value: {npv}% # TN/(TN+FN)')
-    log(f'Recall: {tpr}% # TP/P')
-    log(f'Selectivity: {tnr}% # TN/N')
-    log(f'F1 Score: {f1}%')
     # log(f'Confusion matrix: {conf_mat}')
     # log(f'Raveled Confusion Matrix: {conf_mat.ravel()}')
 
@@ -207,15 +207,16 @@ def compare_topology(in_adj, gold_adj, log_filename, fig_filename, add_loop=True
     log(f'# Edge: {int(edge_sum)}')
     log(f'# Gold Edge: {int(gold_sum)}')
     log(f'# Edge over # Gold Edge: {edge_ratio}%')
-    disp = ConfusionMatrixDisplay(
-        confusion_matrix=conf_mat, display_labels=[0, 1])
-    matplotlib.use('Agg')
-    disp.plot(values_format='d')
+    if fig_filename:
+        disp = ConfusionMatrixDisplay(
+            confusion_matrix=conf_mat, display_labels=[0, 1])
+        matplotlib.use('Agg')
+        disp.plot(values_format='d')
 
-    plt.savefig(fig_filename)
-    plt.clf()
-    plt.cla()
-    plt.close()
+        plt.savefig(fig_filename)
+        plt.clf()
+        plt.cla()
+        plt.close()
 
     result = {'tp': tp, 'fp': fp,
               'tn': tn, 'fn': fn,
@@ -471,93 +472,6 @@ def log_run_perf(base_vals, base_tests, ours_vals, ours_tests, filename, noen_ou
         superprint(f'Mean Test Acc: {mean_test} +/- {std_test}', filename)
         superprint(f'Vals Accs: {val_accs}', filename)
         superprint(f'Test Accs {test_accs}', filename)
-
-
-def sparse_pgd_attack(run_dir, dataset, attack_name, basemodel_name, alpha, data, trainlog_path, ptb_rate=0.05, device='cpu'):
-    print('Device', device)
-
-    # Instantiating model
-    from model import GCN, GAT, OurGCN, OurGAT
-    if attack_name == 'attack_base':
-        if basemodel_name == 'GCN':
-            victim_model = GCN(dataset.num_features, 16,
-                               dataset.num_classes).to(device)
-        else:
-            victim_model = GAT(dataset.num_features, 8,
-                               dataset.num_classes).to(device)
-        checkpoint_step = 0
-    elif attack_name == 'attack_ours':
-        if basemodel_name == 'GCN':
-            victim_model = OurGCN(dataset.num_features, 16,
-                                  dataset.num_classes, alpha=alpha).to(device)
-        else:
-            victim_model = OurGAT(dataset.num_features, 8,
-                                  dataset.num_classes, alpha=alpha).to(device)
-        checkpoint_step = 5
-    victim_model = victim_model.to(device)
-    print('Victim model', victim_model)
-
-    # Loading checkpoint
-    checkpoint_path = run_dir / ('model_'+str(checkpoint_step)+'.pt')
-    checkpoint = torch.load(checkpoint_path)
-    victim_model.load_state_dict(checkpoint['model'])
-    print('Loaded checkpoint:', checkpoint_path)
-
-    from trainer import Trainer
-    # Testing with A
-    ori_data = dataset[0].to(device)
-    ori_adj = to_dense_adj(ori_data.edge_index, edge_attr=ori_data.edge_attr,
-                           max_num_nodes=ori_data.num_nodes)[0]
-    ori_trainer = Trainer(victim_model, ori_data, device, trainlog_path)
-    (ori_train_acc, ori_val_acc, ori_test_acc), ori_logit = ori_trainer.test()
-    print('Original Adjacency\n', ori_adj)
-    print('GNN(X, A)\n', ori_train_acc, ori_val_acc, ori_test_acc)
-    print(ori_logit)
-
-    # Testing with A'
-    aug_data = dataset[0].to(device)
-    aug_data.edge_index = checkpoint['edge_index']
-    aug_data.edge_attr = checkpoint['edge_attr']
-    aug_adj = to_dense_adj(aug_data.edge_index, edge_attr=aug_data.edge_attr,
-                           max_num_nodes=aug_data.num_nodes)[0].to(device)
-    aug_trainer = Trainer(victim_model, aug_data, device, trainlog_path)
-    (aug_train_acc, aug_val_acc, aug_test_acc), aug_logit = aug_trainer.test()
-    print('Diff sum (original adj vs augmented adj):',
-          (ori_adj != aug_adj).sum().item())
-    print('Original trainer', ori_trainer.edge_index.shape)
-    print('Augmented trainer', aug_trainer.edge_index.shape)
-    print('Augmented Adjacency\n', aug_adj)
-    print("GNN(X, A')\n", aug_train_acc, aug_val_acc, aug_test_acc)
-    print(aug_logit)
-
-    # Attack parameters
-    adj, features, labels = aug_adj, data.x, data.test_mask
-    idx_train, idx_val, idx_test = data.train_mask, data.val_mask, data.test_mask
-    perturbations = int(ptb_rate * (adj.sum()//2))
-    from deeprobust.graph.utils import to_scipy
-    adj, features, labels = preprocess(
-        to_scipy(adj), to_scipy(features), labels.long().cpu(), preprocess_adj=False, device=device)
-
-    # Setup attack model
-    attack_model = SparsePGDAttack(model=victim_model,
-                                   nnodes=adj.shape[0],
-                                   loss_type='CE',
-                                   device=device)
-    attack_model.attack(features, aug_data.edge_index, aug_data.edge_attr, labels,
-                        idx_train, n_perturbations=perturbations)
-    # attack_model.attack(features, adj, labels,
-    #                     idx_train, n_perturbations=perturbations)
-    modified_adj = attack_model.modified_adj
-    print('Modified_adj\n', modified_adj)
-    print('Diff sum', (modified_adj != adj).sum())
-    diff_idx = (modified_adj != adj).nonzero(as_tuple=False)
-    for i, (row, col) in enumerate(diff_idx):
-        if i < 3:
-            print('Different index: (', str(row.item())+',', str(col.item())+')', 'ori', adj[row][col].item(
-            ), '->', modified_adj[row][col].item())
-
-    modified_edge_index, modified_edge_attr = dense_to_sparse(modified_adj)
-    return modified_edge_index, modified_edge_attr, modified_adj
 
 
 def pgd_attack(run_dir, dataset, attack_name, basemodel_name, alpha, trainlog_path, ptb_rate=0.05, device='cpu', gradlog_path=None):

@@ -8,6 +8,7 @@ from torch_geometric.utils.sparse import dense_to_sparse
 from utils import (
     percentage,
     log_training,
+    compare_topology
 )
 
 
@@ -177,7 +178,7 @@ class Trainer():
         return final, logit
 
     @ torch.no_grad()
-    def augment_topology(self, drop_edge=False):
+    def augment_topology(self, drop_edge=False, eval_new_edge=False):
         edge_index = self.edge_index.clone()
         before_edge_num = edge_index.size(1)
 
@@ -190,6 +191,13 @@ class Trainer():
         edge_index = torch.cat([edge_index, new_edge], dim=1)
         adj = to_dense_adj(edge_index, max_num_nodes=self.max_num_nodes)[0]
         adj[adj > 1] = 1
+
+        if new_edge.size(1) == 0:
+            new_adj = torch.zeros_like(adj)
+        else:
+            new_adj = to_dense_adj(
+                new_edge, max_num_nodes=self.max_num_nodes)[0]\
+
 
         # Drop
         if drop_edge:
@@ -211,4 +219,4 @@ class Trainer():
         log_training(f'# Before Edge: {before_edge_num}', self.logfile)
         log_training(f'# After Edge: {edge_index.size(1)}', self.logfile)
 
-        return edge_index, edge_attr, adj, new_edge
+        return edge_index, edge_attr, adj, new_edge, new_adj
