@@ -500,16 +500,16 @@ def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, pt
     from model import GCN, GAT, OurGCN, OurGAT
     if vic_basemodel_name == 'GCN':
         victim_model = GCN(dataset.num_features, 16,
-                           dataset.num_classes, return_final=False, cached=False).to(device)
+                           dataset.num_classes, cached=False).to(device)
     elif vic_basemodel_name == 'GAT':
         victim_model = GAT(dataset.num_features, 8,
-                           dataset.num_classes, return_final=False).to(device)
+                           dataset.num_classes).to(device)
     elif vic_basemodel_name == 'TAD_GCN':
         victim_model = OurGCN(dataset.num_features, 16,
-                              dataset.num_classes, return_final=False, cached=False).to(device)
+                              dataset.num_classes, cached=False).to(device)
     elif vic_basemodel_name == 'TAD_GAT':
         victim_model = OurGAT(dataset.num_features, 8,
-                              dataset.num_classes, return_final=False).to(device)
+                              dataset.num_classes).to(device)
 
     model_ckpt = torch.load(model_ckpt_path)
     victim_model.load_state_dict(model_ckpt['model'])
@@ -539,17 +539,19 @@ def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, pt
 
         # Comparing the topology performance
         if True:
-            pass
-            # ori_trainer = Trainer(victim_model, ori_data, device)
-            # aug_trainer = Trainer(victim_model, aug_data, device)
-            # (ori_train_acc, ori_val_acc, ori_test_acc), ori_logit = ori_trainer.test()
-            # (aug_train_acc, aug_val_acc, aug_test_acc), aug_logit = aug_trainer.test()
-            # log(f'Edge index in original trainer: {ori_trainer.edge_index.shape}')
-            # log(f'Edge index in augmented trainer: {aug_trainer.edge_index.shape}')
-            # log(f'GNN(X, A)  Train {ori_train_acc} Val {ori_val_acc} Test {ori_test_acc}')
-            # log(f"GNN(X, A') Train {aug_train_acc} Val {aug_val_acc} Test {aug_test_acc}")
-            # log(f'Logit with A\n{ori_logit}')
-            # log(f"Logit with A'\n{aug_logit}")
+            from trainer import Trainer
+            ori_trainer = Trainer(victim_model, ori_data, device)
+            aug_trainer = Trainer(victim_model, aug_data, device)
+            (ori_train_acc, ori_val_acc, ori_test_acc), ori_logit = ori_trainer.test()
+            (aug_train_acc, aug_val_acc, aug_test_acc), aug_logit = aug_trainer.test()
+            log(
+                f'Edge index in original trainer: {ori_trainer.edge_index.shape}')
+            log(
+                f'Edge index in augmented trainer: {aug_trainer.edge_index.shape}')
+            log(f'GNN(X, A)  Train {ori_train_acc} Val {ori_val_acc} Test {ori_test_acc}')
+            log(f"GNN(X, A') Train {aug_train_acc} Val {aug_val_acc} Test {aug_test_acc}")
+            log(f'Logit with A\n{ori_logit}')
+            log(f"Logit with A'\n{aug_logit}")
 
     # Setup attack model
     perturbations = int(ptb_rate * (aug_adj.sum()//2))
@@ -558,6 +560,7 @@ def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, pt
     adj, features, labels, idx_train = aug_adj, aug_data.x, aug_data.y, aug_data.train_mask
     adj, features, labels = to_scipy(adj), to_scipy(features), labels.cpu()
     adj, features, labels = preprocess(adj, features, labels, device='cpu')
+    victim_model.return_final = False
     attack_model = PGDAttack(model=victim_model,
                              nnodes=adj.shape[0],
                              loss_type='CE',
@@ -646,17 +649,19 @@ def random_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path,
 
         # Comparing the topology performance
         if True:
-            pass
-            # ori_trainer = Trainer(victim_model, ori_data, device)
-            # aug_trainer = Trainer(victim_model, aug_data, device)
-            # (ori_train_acc, ori_val_acc, ori_test_acc), ori_logit = ori_trainer.test()
-            # (aug_train_acc, aug_val_acc, aug_test_acc), aug_logit = aug_trainer.test()
-            # log(f'Edge index in original trainer: {ori_trainer.edge_index.shape}')
-            # log(f'Edge index in augmented trainer: {aug_trainer.edge_index.shape}')
-            # log(f'GNN(X, A)  Train {ori_train_acc} Val {ori_val_acc} Test {ori_test_acc}')
-            # log(f"GNN(X, A') Train {aug_train_acc} Val {aug_val_acc} Test {aug_test_acc}")
-            # log(f'Logit with A\n{ori_logit}')
-            # log(f"Logit with A'\n{aug_logit}")
+            from trainer import Trainer
+            ori_trainer = Trainer(victim_model, ori_data, device)
+            aug_trainer = Trainer(victim_model, aug_data, device)
+            (ori_train_acc, ori_val_acc, ori_test_acc), ori_logit = ori_trainer.test()
+            (aug_train_acc, aug_val_acc, aug_test_acc), aug_logit = aug_trainer.test()
+            log(
+                f'Edge index in original trainer: {ori_trainer.edge_index.shape}')
+            log(
+                f'Edge index in augmented trainer: {aug_trainer.edge_index.shape}')
+            log(f'GNN(X, A)  Train {ori_train_acc} Val {ori_val_acc} Test {ori_test_acc}')
+            log(f"GNN(X, A') Train {aug_train_acc} Val {aug_val_acc} Test {aug_test_acc}")
+            log(f'Logit with A\n{ori_logit}')
+            log(f"Logit with A'\n{aug_logit}")
 
     # Attack attack
     attacked_edge_index, attacked_edge_attr = add_random_edge(
