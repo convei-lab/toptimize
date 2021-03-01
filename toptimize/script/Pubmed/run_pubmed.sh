@@ -4,7 +4,7 @@ cd /data/brandon/toptimize/toptimize
 ### GCN ###
 
 ## Ours
-# python train.py "Pubmed/no_drop_real" -b GCN -d Pubmed -tr 100 -t 9
+python train.py "Pubmed/Ours_paper" -b GCN -d Pubmed -tr 100 -t 9
 
 ## No LL
 # python train.py "Pubmed/no_drop_LL_real" -b GCN -d Pubmed -tr 100 -t 9999999 -l1 0
@@ -20,7 +20,7 @@ cd /data/brandon/toptimize/toptimize
 # No LL
 
 # No DL
-python train.py "Pubmed/no_DL_paper" -b GAT -d Pubmed -tr 100 -t 5
+# python train.py "Pubmed/no_DL_paper" -b GAT -d Pubmed -tr 100 -t 5
 
 ### Cold Start ###
 

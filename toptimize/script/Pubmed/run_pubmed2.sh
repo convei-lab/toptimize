@@ -7,11 +7,11 @@ cd /data/brandon/toptimize/toptimize
 # python train.py "Pubmed/no_drop_real" -b GCN -d Pubmed -tr 100 -t 9
 
 ## No LL
-python train.py "Pubmed/no_LL_paper" -b GCN -d Pubmed -tr 100 -t 9999999 -l1 0
+# python train.py "Pubmed/no_LL_paper" -b GCN -d Pubmed -tr 100 -t 9999999 -l1 0
 
 ## No DL
 # python train.py "Pubmed/no_drop_DL_real" -b GCN -d Pubmed -tr 100 -t 9 -l2 0
-
+python train.py "Pubmed/Ours_paper_DL" -b GCN -d Pubmed -tr 100 -t 9 -l2 0
 ### GAT ###
 
 #Ours
