@@ -500,16 +500,16 @@ def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, pt
     from model import GCN, GAT, OurGCN, OurGAT
     if vic_basemodel_name == 'GCN':
         victim_model = GCN(dataset.num_features, 16,
-                           dataset.num_classes, cached=False).to(device)
+                           dataset.num_classes, return_final=False, cached=False).to(device)
     elif vic_basemodel_name == 'GAT':
         victim_model = GAT(dataset.num_features, 8,
-                           dataset.num_classes).to(device)
+                           dataset.num_classes, return_final=False).to(device)
     elif vic_basemodel_name == 'TAD_GCN':
         victim_model = OurGCN(dataset.num_features, 16,
-                              dataset.num_classes, cached=False).to(device)
+                              dataset.num_classes, return_final=False, cached=False).to(device)
     elif vic_basemodel_name == 'TAD_GAT':
         victim_model = OurGAT(dataset.num_features, 8,
-                              dataset.num_classes).to(device)
+                              dataset.num_classes, return_final=False).to(device)
 
     model_ckpt = torch.load(model_ckpt_path)
     victim_model.load_state_dict(model_ckpt['model'])
@@ -557,17 +557,18 @@ def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, pt
     log(f'Targeted number of edge perturbations: {perturbations}')
     adj, features, labels, idx_train = aug_adj, aug_data.x, aug_data.y, aug_data.train_mask
     adj, features, labels = to_scipy(adj), to_scipy(features), labels.cpu()
-    adj, features, labels = preprocess(adj, features, labels, device=device)
+    adj, features, labels = preprocess(adj, features, labels, device='cpu')
     attack_model = PGDAttack(model=victim_model,
                              nnodes=adj.shape[0],
                              loss_type='CE',
                              device=device)
-    attack_model.geometric_attack(features, adj, labels,
-                                  idx_train, perturbations, gradlog_path=gradlog_path)
+    attack_model.attack(features, adj, labels,
+                        idx_train, perturbations, gradlog_path=gradlog_path)
     attacked_adj = attack_model.modified_adj
     attacked_edge_index, attacked_edge_attr = dense_to_sparse(attacked_adj)
 
     if compare_attacked:
+        adj = adj.to(device)
         log(f'Attacked adjecency\n{attacked_adj} {attacked_adj.shape}')
         log(f'Attacked edge number: {int(attacked_adj.sum())}')
         log(f'Different edge number: {int((attacked_adj != aug_adj).sum())}')
