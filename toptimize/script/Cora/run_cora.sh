@@ -16,7 +16,7 @@ cd /data/brandon/toptimize/toptimize
 
 ## Ours
 # On Test
-python train.py "Cora/ours_paper_LL_2trial" -b GAT -d Cora -tr 100 -t 9999999999 -te 300 -l1 0
+# python train.py "Cora/ours_paper_LL_2trial" -b GAT -d Cora -tr 100 -t 9999999999 -te 300 -l1 0
 # python train.py "Cora/no_drop_trial2" -b GAT -d Cora -tr 100 -t 4 -te 200 -hs 8
 # python train.py "Cora/no_drop_LL_trial2" -b GAT -d Cora -tr 100 -t 9999999999 -te 200 -hs 8 -l1 0
 # python train.py "Cora/no_drop_DL_trial2" -b GAT -d Cora -tr 100 -t 4 -te 200 -hs 8 -l2 0
@@ -31,6 +31,8 @@ python train.py "Cora/ours_paper_LL_2trial" -b GAT -d Cora -tr 100 -t 9999999999
 ##### Cold Start #####
 
 ## GCN (0.25, 0.50, 0.75)
+python train.py "Coldstart/Cora/0_paper" -b GCN -d Cora -tr 100 -t 8 -csr 0.0005
+# python train.py "Coldstart/Cora/0.25_real" -b GAT -d Cora -tr 100 -t 10 -csr 0.25 -te 300
 # python train.py "Coldstart/Cora/0.25_real" -b GAT -d Cora -tr 100 -t 10 -csr 0.25 -te 300
 # python train.py "Coldstart/Cora/0.50_real" -b GAT -d Cora -tr 100 -t 10 -csr 0.50 -te 300
 # python train.py "Coldstart/Cora/0.75_real" -b GAT -d Cora -tr 100 -t 10 -csr 0.75 -te 300

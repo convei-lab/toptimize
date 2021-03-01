@@ -664,9 +664,9 @@ def random_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path,
 
     if compare_attacked:
         log(f'Attacked adjecency\n{attacked_adj} {attacked_adj.shape}')
-        log(f'Augmented edge number: {int(aug_adj.sum())}')
+        log(f'Attacked edge number: {int(attacked_adj.sum())}')
         log(f'Different edge number: {int((attacked_adj != aug_adj).sum())}')
-        diff_idx = (attacked_adj != ori_adj).nonzero(as_tuple=False)
+        diff_idx = (attacked_adj != aug_adj).nonzero(as_tuple=False)
         for i, (row, col) in enumerate(diff_idx):
             if i < 3:
                 log(

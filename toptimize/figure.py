@@ -16,3 +16,5 @@ ax.set_xlabel("Ratio of Cold Start")
 ax.set_ylabel("Accuracy")
 plt.legend(loc=1)
 plt.draw()
+
+fig.savefig("coldstart_plot.pdf", bbox_inches='tight')

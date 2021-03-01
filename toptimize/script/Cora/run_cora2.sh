@@ -22,7 +22,7 @@ python train.py "Cora/ours_paper_new_LL" -b GAT -d Cora -tr 100 -t 9999999999999
 # python train.py "Cora/no_drop_test3" -b GAT -d Cora -tr 10 -t 3 -te 300
 # python train.py "Cora/no_drop_test9" -b GAT -d Cora -tr 10 -t 9 -te 300
 
-python train.py "Cora/no_DL_paper" -b GAT -d Cora -tr 100 -t 4 -l2 0
+# python train.py "Cora/no_DL_paper" -b GAT -d Cora -tr 100 -t 4 -l2 0
 ## No LL
 
 ## No DL

@@ -28,11 +28,24 @@
 # python attack.py ours-ptb5 pgd_attack dev-7_Cora_GCN -vr 19 -vm 0 -vt 20 -ptb 0.05
 
 # #obust topology experiment
-python attack.py base-ptb2  random_attack dev-7_Cora_GCN -vr 19 -vm 0 -vt 0  -ptb 0.2 -ca -ts 0
-python attack.py ours-ptb2  random_attack dev-7_Cora_GCN -vr 19 -vm 0 -vt 20 -ptb 0.2 -ca -ts 0
-python attack.py base-ptb4  random_attack dev-7_Cora_GCN -vr 19 -vm 0 -vt 0  -ptb 0.4 -ca -ts 0
-python attack.py ours-ptb4  random_attack dev-7_Cora_GCN -vr 19 -vm 0 -vt 20 -ptb 0.4 -ca -ts 0
-python attack.py base-ptb6  random_attack dev-7_Cora_GCN -vr 19 -vm 0 -vt 0  -ptb 0.6 -ca -ts 0
-python attack.py ours-ptb6  random_attack dev-7_Cora_GCN -vr 19 -vm 0 -vt 20 -ptb 0.6 -ca -ts 0
-python attack.py base-ptb8  random_attack dev-7_Cora_GCN -vr 19 -vm 0 -vt 0  -ptb 0.8 -ca -ts 0
-python attack.py ours-ptb8  random_attack dev-7_Cora_GCN -vr 19 -vm 0 -vt 20 -ptb 0.8 -ca -ts 0
+# python attack.py "topo-big2/base-ptb5" random_attack dev-8_Cora_GCN -vr 19 -vm 0 -vt 0  -ptb 0.5 -ca -ts 0
+# python attack.py "topo-big2/ours-ptb5" random_attack dev-8_Cora_GCN -vr 19 -vm 0 -vt 20 -ptb 0.5 -ca -ts 0
+# python attack.py "topo-big2/base-ptb10" random_attack dev-8_Cora_GCN -vr 19 -vm 0 -vt 0  -ptb 1.0 -ca -ts 0
+# python attack.py "topo-big2/ours-ptb10" random_attack dev-8_Cora_GCN -vr 19 -vm 0 -vt 20 -ptb 1.0 -ca -ts 0
+# python attack.py "topo-big2/base-ptb15"  random_attack dev-8_Cora_GCN -vr 19 -vm 0 -vt 0  -ptb 1.5 -ca -ts 0
+# python attack.py "topo-big2/ours-ptb15"  random_attack dev-8_Cora_GCN -vr 19 -vm 0 -vt 20 -ptb 1.5 -ca -ts 0
+# python attack.py "topo-big2/base-ptb20"  random_attack dev-8_Cora_GCN -vr 19 -vm 0 -vt 0  -ptb 2.0 -ca -ts 0
+# python attack.py "topo-big2/ours-ptb20"  random_attack dev-8_Cora_GCN -vr 19 -vm 0 -vt 20 -ptb 2.0 -ca -ts 0
+
+# python attack.py "temp/base-ptb5"  random_attack dev-8_Cora_GCN -vr 19 -vm 0 -vt 0  -ptb 0.05 -ca -ts 0
+# python attack.py "temp/ours-ptb5"  random_attack dev-8_Cora_GCN -vr 19 -vm 0 -vt 20 -ptb 0.05 -ca -ts 0
+
+# robust model experiment
+python attack.py "model_big/base-ptb5"  random_attack dev-8_Cora_GCN -vr 19 -vm  0 -vt 0 -ptb 0.5 -ca -ts 0
+python attack.py "model_big/ours-ptb5"  random_attack dev-8_Cora_GCN -vr 19 -vm 20 -vt 0 -ptb 0.5 -ca -ts 5
+python attack.py "model_big/base-ptb10" random_attack dev-8_Cora_GCN -vr 19 -vm  0 -vt 0 -ptb 1.0  -ca -ts 0
+python attack.py "model_big/ours-ptb10" random_attack dev-8_Cora_GCN -vr 19 -vm 20 -vt 0 -ptb 1.0  -ca -ts 5
+python attack.py "model_big/base-ptb15" random_attack dev-8_Cora_GCN -vr 19 -vm  0 -vt 0 -ptb 1.5 -ca -ts 0
+python attack.py "model_big/ours-ptb15" random_attack dev-8_Cora_GCN -vr 19 -vm 20 -vt 0 -ptb 1.5 -ca -ts 5
+python attack.py "model_big/base-ptb20" random_attack dev-8_Cora_GCN -vr 19 -vm  0 -vt 0 -ptb 2.0 -ca -ts 0
+python attack.py "model_big/ours-ptb20" random_attack dev-8_Cora_GCN -vr 19 -vm 20 -vt 0 -ptb 2.0 -ca -ts 5
