@@ -562,6 +562,7 @@ def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, pt
                              nnodes=adj.shape[0],
                              loss_type='CE',
                              device=device)
+    attack_model.adj_changes.data = attack_model.adj_changes.data.to(device)
     attack_model.attack(features, adj, labels,
                         idx_train, perturbations, gradlog_path=gradlog_path)
     attacked_adj = attack_model.modified_adj
