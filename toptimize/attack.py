@@ -35,14 +35,14 @@ parser.add_argument('attack_type', type=str, choices=[
                     'pgd_attack', 'random_attack'])
 parser.add_argument('victim_name', type=str,
                     help='expalias_dataset_basemodel')
-parser.add_argument('-vr', '--victim_max_run', type=int,
-                    default=20, help='Starting from run 0, specify the last run')
 parser.add_argument('-vm', '--victim_model_step', type=int, default=20,
                     help='The model checkpoint of victim model')
 parser.add_argument('-vt', '--victim_topo_step', type=int, default=20,
                     help='The topology checkpoint of victim model')
 parser.add_argument('-b', '--basemodel', default='GCN',
                     type=str, choices=['GCN', 'GAT'])
+parser.add_argument('-tr', '--total_run', type=int,
+                    default=20, help='Starting from run 0, specify the last run')
 parser.add_argument('-ts', '--total_step', default=5, type=int)
 parser.add_argument('-te', '--total_epoch', default=300, type=int)
 parser.add_argument('-s', '--seed', default=None,
@@ -76,7 +76,7 @@ args.seed = args.seed if args.seed else random.randint(0, 2**32 - 1)
 att_alias = args.att_alias
 victim_name = args.victim_name
 victim_alias, dataset_name, vic_basemodel_name = victim_name.split('_')
-victim_max_run = args.victim_max_run
+total_run = args.total_run
 victim_model_step = args.victim_model_step
 victim_topo_step = args.victim_topo_step
 args.vic_basemodel_name = vic_basemodel_name
@@ -116,7 +116,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 cur_dir = Path(__file__).resolve().parent
 victim_dir = (cur_dir.parent / 'experiment' / victim_name).resolve()
 
-attack_name = f"{att_alias}-{victim_name}-r{victim_max_run}-m{victim_model_step}-t{victim_topo_step}"
+attack_name = f"{att_alias}-{victim_name}-r{total_run}-m{victim_model_step}-t{victim_topo_step}"
 attack_dir = (cur_dir.parent / 'experiment' / attack_type /
               victim_name / attack_name).resolve()
 attack_dir.mkdir(mode=0o777, parents=True, exist_ok=True)
@@ -129,7 +129,7 @@ if use_metric:
     all_run_metric = []
 
 
-for run in list(range(victim_max_run+1)):
+for run in list(range(total_run+1)):
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@ RUN',
           run, ' @@@@@@@@@@@@@@@@@@@@@@@@@@@@')
 
@@ -157,7 +157,6 @@ for run in list(range(victim_max_run+1)):
     trainlog_path = attack_run_dir / 'train_log.txt'
     step_perf_path = attack_run_dir / 'step_perf.txt'
     run_perf_path = attack_dir / 'run_perf.txt'
-    gradlog_path = attack_run_dir / 'grad_fig.pdf'
     metric_fig_path = metric_dir / 'metric.png'
     metric_txt_path = metric_dir / 'metric.txt'
     vic_mod_ckpt_path = run_dir / f'model_{victim_model_step}.pt'
@@ -174,10 +173,10 @@ for run in list(range(victim_max_run+1)):
     data.edge_index = cold_start(data.edge_index, ratio=cold_start_ratio)
     if attack_type == 'pgd_attack':
         data.edge_index, data.edge_attr = pgd_attack(
-            dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, ptb_rate=ptb_rate, device=device, gradlog_path=gradlog_path, compare_attacked=compare_attacked)
+            dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, ptb_rate=ptb_rate, device=device, compare_attacked=compare_attacked)
     elif attack_type == 'random_attack':
         data.edge_index, data.edge_attr = random_attack(
-            dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, ptb_rate=ptb_rate, device=device, gradlog_path=gradlog_path, compare_attacked=compare_attacked)
+            dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, ptb_rate=ptb_rate, device=device, compare_attacked=compare_attacked)
     ###############  End of Attack Model ##############
     label = data.y
     one_hot_label = F.one_hot(data.y).float()
