@@ -477,7 +477,7 @@ def log_run_perf(base_vals, base_tests, ours_vals, ours_tests, filename, noen_ou
         superprint(f'Test Accs {test_accs}', filename)
 
 
-def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, ptb_rate=0.05, device='cpu', compare_attacked=False, gradlog_path=None):
+def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, ptb_rate=0.05, device='cpu', compare_attacked=False):
     global print
     safe_remove_file(attacklog_path)
     log = decorated_with(attacklog_path)(print)
@@ -564,7 +564,7 @@ def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, pt
                              device=device)
     attack_model.adj_changes.data = attack_model.adj_changes.data.to(device)
     attack_model.attack(features, adj, labels,
-                        idx_train, perturbations, gradlog_path=gradlog_path)
+                        idx_train, perturbations)
     attacked_adj = attack_model.modified_adj
     attacked_edge_index, attacked_edge_attr = dense_to_sparse(attacked_adj)
 
@@ -584,7 +584,7 @@ def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, pt
     return attacked_edge_index, attacked_edge_attr
 
 
-def random_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, ptb_rate=0.05, device='cpu', compare_attacked=False, gradlog_path=None):
+def random_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, ptb_rate=0.05, device='cpu', compare_attacked=False):
     global print
     safe_remove_file(attacklog_path)
     log = decorated_with(attacklog_path)(print)
