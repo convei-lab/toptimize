@@ -31,10 +31,10 @@
 # python attack.py "topo-citeseer_GAT/ours-ptb20" pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 20 -ptb 0.20 -ca -ts 0
 
 # robust topology experiment Cora GAT
-python attack.py "topo-8-cora_GAT/base-ptb5"  pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 0  -ptb 0.05 -ca -ts 0 
-python attack.py "topo-8-cora_GAT/ours-ptb5"  pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 20 -ptb 0.05 -ca -ts 0 
-python attack.py "topo-8-cora_GAT/base-ptb10" pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 0  -ptb 0.1  -ca -ts 0 
-python attack.py "topo-8-cora_GAT/ours-ptb10" pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 20 -ptb 0.1  -ca -ts 0
+python attack_gat.py "topo-8-cora_GAT1/base-ptb5"  pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 0  -ptb 0.05 -ca -ts 0 
+python attack_gat.py "topo-8-cora_GAT1/ours-ptb5"  pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 20 -ptb 0.05 -ca -ts 0 
+# python attack_gat.py "topo-8-cora_GAT1/base-ptb10" pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 0  -ptb 0.1  -ca -ts 0 
+# python attack_gat.py "topo-8-cora_GAT1/ours-ptb10" pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 20 -ptb 0.1  -ca -ts 0
 # python attack.py "topo-8-cora_GAT/base-ptb15" pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 0  -ptb 0.15 -ca -ts 0
 # python attack.py "topo-8-cora_GAT/ours-ptb15" pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 20 -ptb 0.15 -ca -ts 0
 # python attack.py "topo-8-cora_GAT/base-ptb20" pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 0  -ptb 0.20 -ca -ts 0
