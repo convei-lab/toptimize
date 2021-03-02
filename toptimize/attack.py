@@ -129,7 +129,7 @@ if use_metric:
     all_run_metric = []
 
 
-for run in list(range(total_run+1)):
+for run in list(range(total_run)):
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@ RUN',
           run, ' @@@@@@@@@@@@@@@@@@@@@@@@@@@@')
 
@@ -188,7 +188,7 @@ for run in list(range(total_run+1)):
     ##################################################
 
     step = 0
-
+    # basemodel_name = 'GAT'
     if basemodel_name == 'GCN':
         hidden_sizes = hidden_sizes if hidden_sizes else 16
         model = GCN(dataset.num_features, hidden_sizes,
@@ -224,6 +224,20 @@ for run in list(range(total_run+1)):
         final, logit = trainer.infer()
         perf_stat = evaluate_experiment(
             step, final, label, adj, gold_adj, confmat_dir, topofig_dir, tsne_dir)
+
+        # test_adj = torch.zeros_like(adj)
+        # test_adj[data.test_mask, :] = adj[data.test_mask, :]
+        # test_adj = test_adj + test_adj.T
+        # test_adj[test_adj > 1] = 1
+        # perf_stat = evaluate_experiment(
+        #     step, final, label, test_adj, gold_adj, confmat_dir, topofig_dir, tsne_dir)
+
+        # train_adj = torch.zeros_like(adj)
+        # train_adj[data.train_mask, :] = adj[data.train_mask, :]
+        # train_adj = train_adj + train_adj.T
+        # train_adj[train_adj > 1] = 1
+        # perf_stat = evaluate_experiment(
+        #     step, final, label, train_adj, gold_adj, confmat_dir, topofig_dir, tsne_dir)
 
     ##################################################
     ############## Training Our Model ################

@@ -11,17 +11,17 @@
 # python attack.py "topo-t10/ours-ptb20" pgd_attack dev-7_Cora_GCN -vr 19 -vm 0 -vt 20 -ptb 0.20 -ca -ts 0
 
 # robust topology experiment Citeseer
-# python attack.py "topo-citeseer/base-ptb5"  pgd_attack dev-7_Citeseer_GCN -tr 19 -vm 0 -vt 0  -ptb 0.05 -ca -ts 0
-# python attack.py "topo-citeseer/ours-ptb5"  pgd_attack dev-7_Citeseer_GCN -tr 19 -vm 0 -vt 20 -ptb 0.05 -ca -ts 0
-# python attack.py "topo-citeseer/base-ptb10" pgd_attack dev-7_Citeseer_GCN -tr 19 -vm 0 -vt 0  -ptb 0.1  -ca -ts 0
-# python attack.py "topo-citeseer/ours-ptb10" pgd_attack dev-7_Citeseer_GCN -tr 19 -vm 0 -vt 20 -ptb 0.1  -ca -ts 0
-# python attack.py "topo-6-citeseer/base-ptb15" pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 0  -ptb 0.15 -ca -ts 0
-# python attack.py "topo-6-citeseer/ours-ptb15" pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 20 -ptb 0.15 -ca -ts 0
-# python attack.py "topo-6-citeseer/base-ptb20" pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 0  -ptb 0.20 -ca -ts 0
-# python attack.py "topo-6-citeseer/ours-ptb20" pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 20 -ptb 0.20 -ca -ts 0
+# python attack.py "topo-citeseer_GAT/base-ptb5"  pgd_attack dev_Citeseer_GAT -tr 19 -vm 0 -vt 0  -ptb 0.05 -ca -ts 0
+# python attack.py "topo-citeseer_GAT/ours-ptb5"  pgd_attack dev_Citeseer_GAT -tr 19 -vm 0 -vt 20 -ptb 0.05 -ca -ts 0
+# python attack.py "topo-citeseer_GAT/base-ptb10" pgd_attack dev_Citeseer_GAT -tr 19 -vm 0 -vt 0  -ptb 0.1  -ca -ts 0
+# python attack.py "topo-citeseer_GAT/ours-ptb10" pgd_attack dev_Citeseer_GAT -tr 19 -vm 0 -vt 20 -ptb 0.1  -ca -ts 0
+# python attack.py "topo-citeseer_GAT/base-ptb15" pgd_attack dev_Citeseer_GAT -tr 19 -vm 0 -vt 0  -ptb 0.15 -ca -ts 0
+# python attack.py "topo-citeseer_GAT/ours-ptb15" pgd_attack dev_Citeseer_GAT -tr 19 -vm 0 -vt 20 -ptb 0.15 -ca -ts 0
+# python attack.py "topo-citeseer_GAT/base-ptb20" pgd_attack dev_Citeseer_GAT -tr 19 -vm 0 -vt 0  -ptb 0.20 -ca -ts 0
+# python attack.py "topo-citeseer_GAT/ours-ptb20" pgd_attack dev_Citeseer_GAT -tr 19 -vm 0 -vt 20 -ptb 0.20 -ca -ts 0
 
 # robust topology experiment Citeseer GAT
-python attack.py "topo-citeseer_GAT/base-ptb5"  pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 0  -ptb 0.05 -ca -ts 0 
+# python attack.py "topo-citeseer_GAT/base-ptb5"  pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 0  -ptb 0.05 -ca -ts 0 
 # python attack.py "topo-citeseer_GAT/ours-ptb5"  pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 20 -ptb 0.05 -ca -ts 0 
 # python attack.py "topo-citeseer_GAT/base-ptb10" pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 0  -ptb 0.1  -ca -ts 0 
 # python attack.py "topo-citeseer_GAT/ours-ptb10" pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 20 -ptb 0.1  -ca -ts 0
@@ -29,6 +29,18 @@ python attack.py "topo-citeseer_GAT/base-ptb5"  pgd_attack dev-6_Citeseer_GCN -t
 # python attack.py "topo-citeseer_GAT/ours-ptb15" pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 20 -ptb 0.15 -ca -ts 0
 # python attack.py "topo-citeseer_GAT/base-ptb20" pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 0  -ptb 0.20 -ca -ts 0
 # python attack.py "topo-citeseer_GAT/ours-ptb20" pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 20 -ptb 0.20 -ca -ts 0
+
+# robust topology experiment Cora GAT
+python attack.py "topo-8-cora_GAT/base-ptb5"  pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 0  -ptb 0.05 -ca -ts 0 
+python attack.py "topo-8-cora_GAT/ours-ptb5"  pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 20 -ptb 0.05 -ca -ts 0 
+python attack.py "topo-8-cora_GAT/base-ptb10" pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 0  -ptb 0.1  -ca -ts 0 
+python attack.py "topo-8-cora_GAT/ours-ptb10" pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 20 -ptb 0.1  -ca -ts 0
+# python attack.py "topo-8-cora_GAT/base-ptb15" pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 0  -ptb 0.15 -ca -ts 0
+# python attack.py "topo-8-cora_GAT/ours-ptb15" pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 20 -ptb 0.15 -ca -ts 0
+# python attack.py "topo-8-cora_GAT/base-ptb20" pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 0  -ptb 0.20 -ca -ts 0
+# python attack.py "topo-8-cora_GAT/ours-ptb20" pgd_attack dev-8_Cora_GCN -tr 19 -vm 0 -vt 20 -ptb 0.20 -ca -ts 0
+
+
 
 # robust model experiment 2
 # python attack.py "model-t10/base-ptb5"  pgd_attack dev-7_Cora_GCN -vr 19 -vm  0 -vt 0 -ptb 0.05 -ca -ts 0      

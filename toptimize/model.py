@@ -31,56 +31,6 @@ class GCN(torch.nn.Module):
             return final, F.log_softmax(final, dim=1)
         else:
             return F.log_softmax(final, dim=1)
-    # def forward(self, x, edge_index, edge_attr):
-    #     i = edge_index
-    #     v = torch.ones_like(edge_index[0])
-    #     sp_adj = torch.sparse.FloatTensor(i, v, torch.Size([2708, 2708]))
-    #     with torch.autograd.detect_anomaly():
-    #         x = F.relu(self.conv1(x, sp_adj))
-    #     x = F.dropout(x, training=self.training)
-    #     final = self.conv2(x, sp_adj)
-    #     return final, F.log_softmax(final, dim=1)
-
-
-class GAT(torch.nn.Module):
-    def __init__(self, nfeat, hidden_sizes, nclass, nhead=8, dropout=0.6, return_final=True):
-        super(GAT, self).__init__()
-        self.nfeat = nfeat
-        self.hidden_sizes = hidden_sizes
-        self.nclass = nclass
-        self.nhead = nhead
-        self.dropout = dropout
-        self.conv1 = GATConv(nfeat, hidden_sizes, heads=nhead, dropout=dropout)
-        # On the Pubmed dataset, use heads=8 in conv2.
-        self.conv2 = GATConv(hidden_sizes * nhead, nclass, heads=1, concat=False,
-                             dropout=dropout)
-        self.return_final = return_final
-
-    def forward(self, x, edge_index, edge_attr=None):
-        x = F.dropout(x, p=0.6, training=self.training)
-        x = F.elu(self.conv1(x, edge_index))
-        x = F.dropout(x, p=0.6, training=self.training)
-        final = F.elu(self.conv2(x, edge_index))
-        # final = self.conv2(x, edge_index)
-        if self.return_final:
-            return final, F.log_softmax(final, dim=1)
-        else:
-            return F.log_softmax(final, dim=1)
-
-
-# class OurGCN(GCN):
-#     def __init__(self, nfeat, hidden_sizes, nclass, use_gdc=False):
-#         super().__init__(nfeat, hidden_sizes, nclass, use_gdc=False)
-#         self.conv1 = GCN4ConvSIGIR(nfeat, hidden_sizes,
-#                                    cached=True, normalize=not use_gdc)
-
-
-# class OurGAT(GAT):
-#     def __init__(self, nfeat, hidden_sizes, nclass, nhead=8, dropout=0.6):
-#         super().__init__(nfeat, hidden_sizes, nclass, nhead=8, dropout=0.6)
-#         self.conv1 = GAT4ConvSIGIR(
-#             nfeat, hidden_sizes, heads=nhead, dropout=dropout)
-
 
 class OurGCN(torch.nn.Module):
     def __init__(self, nfeat, hidden_sizes, nclass, alpha=10, beta=-3, cached=True, use_gdc=False, return_final=True):
@@ -104,6 +54,31 @@ class OurGCN(torch.nn.Module):
         x = F.relu(self.conv1(x, edge_index, edge_attr))
         x = F.dropout(x, training=self.training)
         final = self.conv2(x, edge_index, edge_attr)
+        if self.return_final:
+            return final, F.log_softmax(final, dim=1)
+        else:
+            return F.log_softmax(final, dim=1)
+
+class GAT(torch.nn.Module):
+    def __init__(self, nfeat, hidden_sizes, nclass, nhead=8, dropout=0.6, return_final=True):
+        super(GAT, self).__init__()
+        self.nfeat = nfeat
+        self.hidden_sizes = hidden_sizes
+        self.nclass = nclass
+        self.nhead = nhead
+        self.dropout = dropout
+        self.conv1 = GATConv(nfeat, hidden_sizes, heads=nhead, dropout=dropout)
+        # On the Pubmed dataset, use heads=8 in conv2.
+        self.conv2 = GATConv(hidden_sizes * nhead, nclass, heads=1, concat=False,
+                             dropout=dropout)
+        self.return_final = return_final
+
+    def forward(self, x, edge_index, edge_attr=None):
+        x = F.dropout(x, p=0.6, training=self.training)
+        x = F.elu(self.conv1(x, edge_index))
+        x = F.dropout(x, p=0.6, training=self.training)
+        final = F.elu(self.conv2(x, edge_index))
+        # final = self.conv2(x, edge_index)
         if self.return_final:
             return final, F.log_softmax(final, dim=1)
         else:

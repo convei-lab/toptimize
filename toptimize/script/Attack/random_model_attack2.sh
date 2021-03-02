@@ -50,27 +50,6 @@
 # python attack.py "topo-big2/base-cite-ptb20"  random_attack dev-7_Citeseer_GCN -tr 19 -vm 0 -vt 0  -ptb 2.0 -ca -ts 0
 # python attack.py "topo-big2/ours-cite-ptb20"  random_attack dev-7_Citeseer_GCN -tr 19 -vm 0 -vt 20 -ptb 2.0 -ca -ts 0
 
-# robust topology experiment CORA
-# python attack.py "topo-big2/base-GAT-ptb5" random_attack dev-8_Cora_GAT -tr 19 -vm 0 -vt 0  -ptb 0.5 -ca -ts 0
-# python attack.py "topo-big2/ours-GAT-ptb5" random_attack dev-8_Cora_GAT -tr 19 -vm 0 -vt 20 -ptb 0.5 -ca -ts 0
-python attack.py "topo-big2/base-GAT-ptb10" random_attack dev-8_Cora_GAT -tr 19 -vm 0 -vt 0  -ptb 1.0 -ca -ts 0
-# python attack.py "topo-big2/ours-GAT-ptb10" random_attack dev-8_Cora_GAT -tr 19 -vm 0 -vt 20 -ptb 1.0 -ca -ts 0
-# python attack.py "topo-big2/base-GAT-ptb15"  random_attack dev-8_Cora_GAT -tr 19 -vm 0 -vt 0  -ptb 1.5 -ca -ts 0
-# python attack.py "topo-big2/ours-GAT-ptb15"  random_attack dev-8_Cora_GAT -tr 19 -vm 0 -vt 20 -ptb 1.5 -ca -ts 0
-# python attack.py "topo-big2/base-GAT-ptb20"  random_attack dev-8_Cora_GAT -tr 19 -vm 0 -vt 0  -ptb 2.0 -ca -ts 0
-# python attack.py "topo-big2/ours-GAT-ptb20"  random_attack dev-8_Cora_GAT -tr 19 -vm 0 -vt 20 -ptb 2.0 -ca -ts 0
-
-
-# robust topology experiment Citeseer
-# python attack.py "topo-big2/base-GAT-cite-ptb5" random_attack dev-7_Citeseer_GAT -tr 19 -vm 0 -vt 0  -ptb 0.5 -ca -ts 0
-# python attack.py "topo-big2/ours-GAT-cite-ptb5" random_attack dev-7_Citeseer_GAT -tr 19 -vm 0 -vt 20 -ptb 0.5 -ca -ts 0
-# python attack.py "topo-big2/base-GAT-cite-ptb10" random_attack dev-7_Citeseer_GAT -tr 19 -vm 0 -vt 0  -ptb 1.0 -ca -ts 0
-# python attack.py "topo-big2/ours-GAT-cite-ptb10" random_attack dev-7_Citeseer_GAT -tr 19 -vm 0 -vt 20 -ptb 1.0 -ca -ts 0
-# python attack.py "topo-big2/base-GAT-cite-ptb15"  random_attack dev-7_Citeseer_GAT -tr 19 -vm 0 -vt 0  -ptb 1.5 -ca -ts 0
-# python attack.py "topo-big2/ours-GAT-cite-ptb15"  random_attack dev-7_Citeseer_GAT -tr 19 -vm 0 -vt 20 -ptb 1.5 -ca -ts 0
-# python attack.py "topo-big2/base-GAT-cite-ptb20"  random_attack dev-7_Citeseer_GAT -tr 19 -vm 0 -vt 0  -ptb 2.0 -ca -ts 0
-# python attack.py "topo-big2/ours-GAT-cite-ptb20"  random_attack dev-7_Citeseer_GAT -tr 19 -vm 0 -vt 20 -ptb 2.0 -ca -ts 0
-
 # robust model experiment Cora
 # python attack.py "model_big/base-ptb5"  random_attack dev-8_Cora_GCN -vr 19 -vm  0 -vt 0 -ptb 0.5 -ca -ts 0
 # python attack.py "model_big/ours-ptb5"  random_attack dev-8_Cora_GCN -vr 19 -vm 20 -vt 0 -ptb 0.5 -ca -ts 5
@@ -82,11 +61,25 @@ python attack.py "topo-big2/base-GAT-ptb10" random_attack dev-8_Cora_GAT -tr 19 
 # python attack.py "model_big/ours-ptb20" random_attack dev-8_Cora_GCN -tr 19 -vm 20 -vt 0 -ptb 2.0 -ca -ts 5
 
 # robust model experiment Citeseer
-# python attack.py "model_big/base-citeseer-ptb5"  random_attack dev-7_Citeseer_GCN -vr 19 -vm  0 -vt 0 -ptb 0.5 -ca -ts 0
-# python attack.py "model_big/ours-citeseer-ptb5"  random_attack dev-7_Citeseer_GCN -vr 19 -vm 20 -vt 0 -ptb 0.5 -ca -ts 5
-# python attack.py "model_big/base-citeseer-ptb10" random_attack dev-7_Citeseer_GCN -vr 19 -vm  0 -vt 0 -ptb 1.0  -ca -ts 0
-# python attack.py "model_big/ours-citeseer-ptb10" random_attack dev-7_Citeseer_GCN -vr 19 -vm 20 -vt 0 -ptb 1.0  -ca -ts 5
-# python attack.py "model_big/base-citeseer-ptb15" random_attack dev-7_Citeseer_GCN -vr 19 -vm  0 -vt 0 -ptb 1.5 -ca -ts 0
-# python attack.py "model_big/ours-citeseer-ptb15" random_attack dev-7_Citeseer_GCN -vr 19 -vm 20 -vt 0 -ptb 1.5 -ca -ts 5
-# python attack.py "model_big/base-citeseer-ptb20" random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 2.0 -ca -ts 0
-# python attack.py "model_big/ours-citeseer-ptb20" random_attack dev-7_Citeseer_GCN -tr 19 -vm 20 -vt 0 -ptb 2.0 -ca -ts 5
+python attack.py "model_big/base-citeseer-ptb5"  random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 0.5 -ca -ts 0
+python attack.py "model_big/ours-citeseer-ptb5"  random_attack dev-7_Citeseer_GCN -tr 19 -vm 20 -vt 0 -ptb 0.5 -ca -ts 5
+python attack.py "model_big/base-citeseer-ptb10" random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 1.0  -ca -ts 0
+python attack.py "model_big/ours-citeseer-ptb10" random_attack dev-7_Citeseer_GCN -tr 19 -vm 20 -vt 0 -ptb 1.0  -ca -ts 5
+python attack.py "model_big/base-citeseer-ptb15" random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 1.5 -ca -ts 0
+python attack.py "model_big/ours-citeseer-ptb15" random_attack dev-7_Citeseer_GCN -tr 19 -vm 20 -vt 0 -ptb 1.5 -ca -ts 5
+python attack.py "model_big/base-citeseer-ptb20" random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 2.0 -ca -ts 0
+python attack.py "model_big/ours-citeseer-ptb20" random_attack dev-7_Citeseer_GCN -tr 19 -vm 20 -vt 0 -ptb 2.0 -ca -ts 5
+
+
+# robust model experiment Cora GAT
+
+
+# robust model experiment Citeseer GAT
+python attack.py "model_big/base-citeseer-ptb5"  random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 0.5 -ca -ts 0
+python attack.py "model_big/ours-citeseer-ptb5"  random_attack dev-7_Citeseer_GCN -tr 19 -vm 20 -vt 0 -ptb 0.5 -ca -ts 5
+python attack.py "model_big/base-citeseer-ptb10" random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 1.0  -ca -ts 0
+python attack.py "model_big/ours-citeseer-ptb10" random_attack dev-7_Citeseer_GCN -tr 19 -vm 20 -vt 0 -ptb 1.0  -ca -ts 5
+python attack.py "model_big/base-citeseer-ptb15" random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 1.5 -ca -ts 0
+python attack.py "model_big/ours-citeseer-ptb15" random_attack dev-7_Citeseer_GCN -tr 19 -vm 20 -vt 0 -ptb 1.5 -ca -ts 5
+python attack.py "model_big/base-citeseer-ptb20" random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 2.0 -ca -ts 0
+python attack.py "model_big/ours-citeseer-ptb20" random_attack dev-7_Citeseer_GCN -tr 19 -vm 20 -vt 0 -ptb 2.0 -ca -ts 5

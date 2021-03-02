@@ -17,6 +17,7 @@ cd /data/brandon/toptimize/toptimize
 # python train.py "Citeseer/no_drop_DL_real" -b GCN -d Citeseer -tr 100 -t 7 -l2 0
 
 ### GAT ###
+python train.py "dev_Citeseer" -b GAT -d Citeseer -tr 20 -t 0.2 -sm -ts 20
 
 ## Ours
 # python train.py "Citeseer/no_drop_test1" -b GAT -d Citeseer -tr 10 -t 1 -te 300 -ts 10
@@ -29,12 +30,13 @@ cd /data/brandon/toptimize/toptimize
 ### Cold Start ###
 
 # GCN (0.25, 0.50, 0.75)
-python train.py "Coldstart/Citeseer/0_paper" -b GCN -d Citeseer -tr 100 -t 0.2 -csr 0.0005
+# python train.py "Coldstart/Citeseer/0_paper" -b GCN -d Citeseer -tr 100 -t 0.2 -csr 0.0005
 # python train.py "Coldstart/Citeseer/0.25_real" -b GCN -d Citeseer -tr 50 -t 7 -csr 0.25
 # python train.py "Coldstart/Citeseer/0.50_real" -b GCN -d Citeseer -tr 50 -t 7 -csr 0.50
 # python train.py "Coldstart/Citeseer/0.75_real" -b GCN -d Citeseer -tr 50 -t 7 -csr 0.75
 
 # # GAT (0.25, 0.50, 0.75)
+# python train.py "Coldstart/Citeseer/0_paper" -b GAT -d Citeseer -tr 100 -t 0.2 -csr 0.0005
 # python train.py "Coldstart/Citeseer/0.25_trial1" -b GAT -d Citeseer -tr 100 -t 0.2 -csr 0.25 -te 300
 # python train.py "Coldstart/Citeseer/0.50_trial1" -b GAT -d Citeseer -tr 100 -t 0.2 -csr 0.50 -te 300
 # python train.py "Coldstart/Citeseer/0.75_trial1" -b GAT -d Citeseer -tr 100 -t 0.2 -csr 0.75 -te 300
