@@ -571,18 +571,18 @@ def pgd_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path, pt
     attacked_adj = attack_model.modified_adj
     attacked_edge_index, attacked_edge_attr = dense_to_sparse(attacked_adj)
 
-    if compare_attacked:
-        adj = adj.to(device)
-        log(f'Attacked adjecency\n{attacked_adj} {attacked_adj.shape}')
-        log(f'Attacked edge number: {int(attacked_adj.sum())}')
-        log(f'Different edge number: {int((attacked_adj != aug_adj).sum())}')
-        diff_idx = (attacked_adj != adj).nonzero(as_tuple=False)
-        for i, (row, col) in enumerate(diff_idx):
-            if i < 3:
-                log(
-                    f'\tExample edge {i}: ({row.item()}, {col.item()}) {aug_adj[row][col].item()} -> {attacked_adj[row][col].item()}')
-        log(f'Attacked edge endex: {attacked_edge_index.shape}')
-        log(f'Attacked edge attr: {attacked_edge_attr.shape}')
+    # if compare_attacked:
+    #     adj = adj.to(device)
+    #     log(f'Attacked adjecency\n{attacked_adj} {attacked_adj.shape}')
+    #     log(f'Attacked edge number: {int(attacked_adj.sum())}')
+    #     log(f'Different edge number: {int((attacked_adj != aug_adj).sum())}')
+    #     diff_idx = (attacked_adj != adj).nonzero(as_tuple=False)
+    #     for i, (row, col) in enumerate(diff_idx):
+    #         if i < 3:
+    #             log(
+    #                 f'\tExample edge {i}: ({row.item()}, {col.item()}) {aug_adj[row][col].item()} -> {attacked_adj[row][col].item()}')
+    #     log(f'Attacked edge endex: {attacked_edge_index.shape}')
+    #     log(f'Attacked edge attr: {attacked_edge_attr.shape}')
 
     return attacked_edge_index, attacked_edge_attr
 
@@ -672,12 +672,12 @@ def random_attack(dataset, vic_basemodel_name, victim_ckpt_path, attacklog_path,
     if compare_attacked:
         log(f'Attacked adjecency\n{attacked_adj} {attacked_adj.shape}')
         log(f'Attacked edge number: {int(attacked_adj.sum())}')
-        log(f'Different edge number: {int((attacked_adj != aug_adj).sum())}')
-        diff_idx = (attacked_adj != aug_adj).nonzero(as_tuple=False)
-        for i, (row, col) in enumerate(diff_idx):
-            if i < 3:
-                log(
-                    f'\tExample edge {i}: ({row.item()}, {col.item()}) {aug_adj[row][col].item()} -> {attacked_adj[row][col].item()}')
+        # log(f'Different edge number: {int((attacked_adj != aug_adj).sum())}')
+        # diff_idx = (attacked_adj != aug_adj).nonzero(as_tuple=False)
+        # for i, (row, col) in enumerate(diff_idx):
+        #     if i < 3:
+        #         log(
+        #             f'\tExample edge {i}: ({row.item()}, {col.item()}) {aug_adj[row][col].item()} -> {attacked_adj[row][col].item()}')
         log(f'Attacked edge endex: {attacked_edge_index.shape}')
         log(f'Attacked edge attr: {attacked_edge_attr.shape}')
 

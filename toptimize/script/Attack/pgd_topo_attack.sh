@@ -21,7 +21,7 @@
 # python attack.py "topo-6-citeseer/ours-ptb20" pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 20 -ptb 0.20 -ca -ts 0
 
 # robust topology experiment Citeseer GAT
-python attack.py "topo-citeseer_GAT/base-ptb5"  pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 0  -ptb 0.05 -ca -ts 0 
+# python attack.py "topo-citeseer_GAT/base-ptb5"  pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 0  -ptb 0.05 -ca -ts 0 
 # python attack.py "topo-citeseer_GAT/ours-ptb5"  pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 20 -ptb 0.05 -ca -ts 0 
 # python attack.py "topo-citeseer_GAT/base-ptb10" pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 0  -ptb 0.1  -ca -ts 0 
 # python attack.py "topo-citeseer_GAT/ours-ptb10" pgd_attack dev-6_Citeseer_GCN -tr 19 -vm 0 -vt 20 -ptb 0.1  -ca -ts 0
@@ -79,3 +79,13 @@ python attack.py "topo-citeseer_GAT/base-ptb5"  pgd_attack dev-6_Citeseer_GCN -t
 # Compare train node masked topology
 # python attack.py "model-test/base-ptb20-wnb" pgd_attack dev-8_Cora_GCN -tr 1 -vm  0 -vt 0 -ptb 0.20 -ca -ts 1 -et -wnb
 # python attack.py "model-test/ours-ptb20-wnb" pgd_attack dev-8_Cora_GCN -tr 1 -vm 20 -vt 0 -ptb 0.20 -ca -ts 1 -et -wnb
+
+# robust topology experiment Pubmed
+python attack.py "PA-topo-pubmed/base-GCN-ptb5" pgd_attack dev_Pubmed_GCN -tr 12 -vm 0 -vt 0  -ptb 0.5 -ca -ts 0
+python attack.py "PA-topo-pubmed/ours-GCN-ptb5" pgd_attack dev_Pubmed_GCN -tr 12 -vm 0 -vt 20 -ptb 0.5 -ca -ts 0
+python attack.py "PA-topo-pubmed/base-GCN-ptb10" pgd_attack dev_Pubmed_GCN -tr 12 -vm 0 -vt 0  -ptb 1.0 -ca -ts 0
+python attack.py "PA-topo-pubmed/ours-GCN-ptb10" pgd_attack dev_Pubmed_GCN -tr 12 -vm 0 -vt 20 -ptb 1.0 -ca -ts 0
+python attack.py "PA-topo-pubmed/base-GCN-ptb15"  pgd_attack dev_Pubmed_GCN -tr 12 -vm 0 -vt 0  -ptb 1.5 -ca -ts 0
+python attack.py "PA-topo-pubmed/ours-GCN-ptb15"  pgd_attack dev_Pubmed_GCN -tr 12 -vm 0 -vt 20 -ptb 1.5 -ca -ts 0
+python attack.py "PA-topo-pubmed/base-GCN-ptb20"  pgd_attack dev_Pubmed_GCN -tr 12 -vm 0 -vt 0  -ptb 2.0 -ca -ts 0
+python attack.py "PA-topo-pubmed/ours-GCN-ptb20"  pgd_attack dev_Pubmed_GCN -tr 12 -vm 0 -vt 20 -ptb 2.0 -ca -ts 0

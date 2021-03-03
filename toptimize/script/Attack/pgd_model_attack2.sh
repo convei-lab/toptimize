@@ -81,4 +81,4 @@
 # python attack.py "model-test/ours-ptb20-wnb" pgd_attack dev-8_Cora_GCN -tr 1 -vm 20 -vt 0 -ptb 0.20 -ca -ts 1 -et -wnb
 
 python attack.py "model-dev8_11/base-ptb20" pgd_attack dev-7_Cora_GCN -tr 19 -vm  0 -vt 0 -ptb 0.20 -ca -ts 0      
-python attack.py "model-dev8_11/ours-ptb20" pgd_attack dev-7_Cora_GCN -tr 19 -vm 20 -vt 0 -ptb 0.20 -ca -ts 5 -t 11
+python attack.py "model-dev8_11/ours-ptb20" pgd_attack dev-7_Cora_GCN -tr 19 -vm 0 -vt 0 -ptb 0.20 -ca -ts 5 -t 11

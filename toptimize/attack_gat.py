@@ -275,8 +275,6 @@ for run in list(range(total_run)):
             hidden_sizes = hidden_sizes if hidden_sizes else 8
             model = OurGAT(dataset.num_features, hidden_sizes,
                            dataset.num_classes, alpha=alpha, beta=beta).to(device)
-            print('Our model model.parameters()', model.parameters())
-            input()
             optimizer = torch.optim.Adam(
                 model.parameters(), lr=0.005, weight_decay=5e-4)
             link_pred = GAT4ConvSIGIR

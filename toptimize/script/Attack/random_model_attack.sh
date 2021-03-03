@@ -61,11 +61,21 @@
 # python attack.py "model_big/ours-ptb20" random_attack dev-8_Cora_GCN -tr 19 -vm 20 -vt 0 -ptb 2.0 -ca -ts 5
 
 # robust model experiment Citeseer
-python attack.py "model_big/base-citeseer-ptb5"  random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 0.5 -ca -ts 0
-python attack.py "model_big/ours-citeseer-ptb5"  random_attack dev-7_Citeseer_GCN -tr 19 -vm 20 -vt 0 -ptb 0.5 -ca -ts 5
-python attack.py "model_big/base-citeseer-ptb10" random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 1.0  -ca -ts 0
-python attack.py "model_big/ours-citeseer-ptb10" random_attack dev-7_Citeseer_GCN -tr 19 -vm 20 -vt 0 -ptb 1.0  -ca -ts 5
-python attack.py "model_big/base-citeseer-ptb15" random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 1.5 -ca -ts 0
-python attack.py "model_big/ours-citeseer-ptb15" random_attack dev-7_Citeseer_GCN -tr 19 -vm 20 -vt 0 -ptb 1.5 -ca -ts 5
-python attack.py "model_big/base-citeseer-ptb20" random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 2.0 -ca -ts 0
-python attack.py "model_big/ours-citeseer-ptb20" random_attack dev-7_Citeseer_GCN -tr 19 -vm 20 -vt 0 -ptb 2.0 -ca -ts 5
+# python attack.py "model_big/base-citeseer-ptb5"  random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 0.5 -ca -ts 0
+# python attack.py "model_big/ours-citeseer-ptb5"  random_attack dev-7_Citeseer_GCN -tr 19 -vm 20 -vt 0 -ptb 0.5 -ca -ts 5
+# python attack.py "model_big/base-citeseer-ptb10" random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 1.0  -ca -ts 0
+# python attack.py "model_big/ours-citeseer-ptb10" random_attack dev-7_Citeseer_GCN -tr 19 -vm 20 -vt 0 -ptb 1.0  -ca -ts 5
+# python attack.py "model_big/base-citeseer-ptb15" random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 1.5 -ca -ts 0
+# python attack.py "model_big/ours-citeseer-ptb15" random_attack dev-7_Citeseer_GCN -tr 19 -vm 20 -vt 0 -ptb 1.5 -ca -ts 5
+# python attack.py "model_big/base-citeseer-ptb20" random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 2.0 -ca -ts 0
+# python attack.py "model_big/ours-citeseer-ptb20" random_attack dev-7_Citeseer_GCN -tr 19 -vm 20 -vt 0 -ptb 2.0 -ca -ts 5
+
+# robust model experiment pubmed
+python attack_gat.py "model_pub/base-pub-ptb5"  random_attack dev_Pubmed_GCN -tr 3 -vm  0 -vt 0 -ptb 0.5 -ca -ts 0
+python attack_gat.py "model_pub/ours-pub-ptb5"  random_attack dev_Pubmed_GCN -tr 3 -vm 0 -vt 0 -ptb 0.5 -ca -ts 5
+python attack_gat.py "model_pub/base-pub-ptb10" random_attack dev_Pubmed_GCN -tr 3 -vm  0 -vt 0 -ptb 1.0  -ca -ts 0
+python attack_gat.py "model_pub/ours-pub-ptb10" random_attack dev_Pubmed_GCN -tr 3 -vm 0 -vt 0 -ptb 1.0  -ca -ts 5
+python attack_gat.py "model_pub/base-pub-ptb15" random_attack dev_Pubmed_GCN -tr 3 -vm  0 -vt 0 -ptb 1.5 -ca -ts 0
+python attack_gat.py "model_pub/ours-pub-ptb15" random_attack dev_Pubmed_GCN -tr 3 -vm 0 -vt 0 -ptb 1.5 -ca -ts 5
+python attack_gat.py "model_pub/base-pub-ptb20" random_attack dev_Pubmed_GCN -tr 3 -vm  0 -vt 0 -ptb 2.0 -ca -ts 0
+python attack_gat.py "model_pub/ours-pub-ptb20" random_attack dev_Pubmed_GCN -tr 3 -vm 0 -vt 0 -ptb 2.0 -ca -ts 5

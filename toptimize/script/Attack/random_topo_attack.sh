@@ -53,12 +53,24 @@
 # robust topology experiment CORA
 # python attack.py "topo-big2/base-GAT-ptb5" random_attack dev-8_Cora_GAT -tr 19 -vm 0 -vt 0  -ptb 0.5 -ca -ts 0
 # python attack.py "topo-big2/ours-GAT-ptb5" random_attack dev-8_Cora_GAT -tr 19 -vm 0 -vt 20 -ptb 0.5 -ca -ts 0
-python attack.py "topo-big2/base-GAT-ptb10" random_attack dev-8_Cora_GAT -tr 19 -vm 0 -vt 0  -ptb 1.0 -ca -ts 0
+# python attack.py "topo-big2/base-GAT-ptb10" random_attack dev-8_Cora_GAT -tr 19 -vm 0 -vt 0  -ptb 1.0 -ca -ts 0
 # python attack.py "topo-big2/ours-GAT-ptb10" random_attack dev-8_Cora_GAT -tr 19 -vm 0 -vt 20 -ptb 1.0 -ca -ts 0
 # python attack.py "topo-big2/base-GAT-ptb15"  random_attack dev-8_Cora_GAT -tr 19 -vm 0 -vt 0  -ptb 1.5 -ca -ts 0
 # python attack.py "topo-big2/ours-GAT-ptb15"  random_attack dev-8_Cora_GAT -tr 19 -vm 0 -vt 20 -ptb 1.5 -ca -ts 0
 # python attack.py "topo-big2/base-GAT-ptb20"  random_attack dev-8_Cora_GAT -tr 19 -vm 0 -vt 0  -ptb 2.0 -ca -ts 0
 # python attack.py "topo-big2/ours-GAT-ptb20"  random_attack dev-8_Cora_GAT -tr 19 -vm 0 -vt 20 -ptb 2.0 -ca -ts 0
+
+#robust topology experiment Pubmed
+# python attack.py "topo-pubmed/base-GCN-ptb5" random_attack dev_Pubmed_GCN -tr 12 -vm 0 -vt 0  -ptb 0.5 -ca -ts 0
+# python attack.py "topo-pubmed/ours-GCN-ptb5" random_attack dev_Pubmed_GCN -tr 12 -vm 0 -vt 12 -ptb 0.5 -ca -ts 0
+# python attack.py "topo-pubmed/base-GCN-ptb10" random_attack dev_Pubmed_GCN -tr 12 -vm 0 -vt 0  -ptb 1.0 -ca -ts 0
+# python attack.py "topo-pubmed/ours-GCN-ptb10" random_attack dev_Pubmed_GCN -tr 12 -vm 0 -vt 12 -ptb 1.0 -ca -ts 0
+python attack.py "topo-pubmed/base-GCN-ptb15"  random_attack dev_Pubmed_GCN -tr 12 -vm 0 -vt 0  -ptb 1.5 -ca -ts 0
+python attack.py "topo-pubmed/ours-GCN-ptb15"  random_attack dev_Pubmed_GCN -tr 12 -vm 0 -vt 5 -ptb 1.5 -ca -ts 0
+python attack.py "topo-pubmed/base-GCN-ptb20"  random_attack dev_Pubmed_GCN -tr 12 -vm 0 -vt 0  -ptb 2.0 -ca -ts 0
+python attack.py "topo-pubmed/ours-GCN-ptb20"  random_attack dev_Pubmed_GCN -tr 12 -vm 0 -vt 5 -ptb 2.0 -ca -ts 0
+
+
 
 
 # robust topology experiment Citeseer

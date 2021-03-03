@@ -25,8 +25,28 @@
 # python attack.py "model-t10/ours-ptb5"  pgd_attack dev-7_Cora_GCN -vr 19 -vm 20 -vt 0 -ptb 0.05 -ca -ts 5 -t 10
 # python attack.py "model-t10/base-ptb10" pgd_attack dev-7_Cora_GCN -vr 19 -vm  0 -vt 0 -ptb 0.1  -ca -ts 0      
 # python attack.py "model-t10/ours-ptb10" pgd_attack dev-7_Cora_GCN -vr 19 -vm 20 -vt 0 -ptb 0.1  -ca -ts 5 -t 10
-python attack.py "model-dev7_11/base-ptb15" pgd_attack dev-7_Cora_GCN -tr 19 -vm  0 -vt 0 -ptb 0.15 -ca -ts 0       
-python attack.py "model-dev7_11/ours-ptb15" pgd_attack dev-7_Cora_GCN -tr 19 -vm 0 -vt 0 -ptb 0.15 -ca -ts 5 -t 11
+# python attack.py "model-dev7_11/base-ptb15" pgd_attack dev-7_Cora_GCN -tr 19 -vm  0 -vt 0 -ptb 0.15 -ca -ts 0       
+# python attack.py "model-dev7_11/ours-ptb15" pgd_attack dev-7_Cora_GCN -tr 19 -vm 0 -vt 0 -ptb 0.15 -ca -ts 5 -t 11
+# python attack.py "model-dev8/base-ptb20" pgd_attack dev-8_Cora_GCN -tr 19 -vm  0 -vt 0 -ptb 0.20 -ca -ts 0      
+# python attack.py "model-dev8/ours-ptb20" pgd_attack dev-8_Cora_GCN -tr 19 -vm 20 -vt 0 -ptb 0.20 -ca -ts 5 -t 10
+
+# robust model experiment Citeseer GAT
+python attack_gat.py "base-GAT-ptb5"  pgd_attack dev-6_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 0.05 -ca -ts 0      
+python attack_gat.py "ours-GAT-ptb5"  pgd_attack dev-6_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 0.05 -ca -ts 5 -t 0.2
+python attack_gat.py "base-GAT-ptb10" pgd_attack dev-6_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 0.1  -ca -ts 0      
+python attack_gat.py "ours-GAT-ptb10" pgd_attack dev-6_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 0.1  -ca -ts 5 -t 0.2
+# python attack_gat.py "citeseer-GAT-ptb15" pgd_attack dev-7_Cora_GCN -tr 19 -vm  0 -vt 0 -ptb 0.15 -ca -ts 0       
+# python attack_gat.py "citeseer-GAT-ptb15" pgd_attack dev-7_Cora_GCN -tr 19 -vm  0 -vt 0 -ptb 0.15 -ca -ts 5 -t 10
+# python attack_gat.py "citeseer-GAT-ptb20" pgd_attack dev-8_Cora_GCN -tr 19 -vm  0 -vt 0 -ptb 0.20 -ca -ts 0      
+# python attack_gat.py "citeseer-GAT-ptb20" pgd_attack dev-8_Cora_GCN -tr 19 -vm  0 -vt 0 -ptb 0.20 -ca -ts 5 -t 10
+
+# robust model experiment Cora GAT
+# python attack.py "model-t10/base-ptb5"  pgd_attack dev-7_Cora_GCN -vr 19 -vm  0 -vt 0 -ptb 0.05 -ca -ts 0      
+# python attack.py "model-t10/ours-ptb5"  pgd_attack dev-7_Cora_GCN -vr 19 -vm 20 -vt 0 -ptb 0.05 -ca -ts 5 -t 10
+# python attack.py "model-t10/base-ptb10" pgd_attack dev-7_Cora_GCN -vr 19 -vm  0 -vt 0 -ptb 0.1  -ca -ts 0      
+# python attack.py "model-t10/ours-ptb10" pgd_attack dev-7_Cora_GCN -vr 19 -vm 20 -vt 0 -ptb 0.1  -ca -ts 5 -t 10
+# python attack.py "model-dev7_11/base-ptb15" pgd_attack dev-7_Cora_GCN -tr 19 -vm  0 -vt 0 -ptb 0.15 -ca -ts 0       
+# python attack.py "model-dev7_11/ours-ptb15" pgd_attack dev-7_Cora_GCN -tr 19 -vm 0 -vt 0 -ptb 0.15 -ca -ts 5 -t 11
 # python attack.py "model-dev8/base-ptb20" pgd_attack dev-8_Cora_GCN -tr 19 -vm  0 -vt 0 -ptb 0.20 -ca -ts 0      
 # python attack.py "model-dev8/ours-ptb20" pgd_attack dev-8_Cora_GCN -tr 19 -vm 20 -vt 0 -ptb 0.20 -ca -ts 5 -t 10
 

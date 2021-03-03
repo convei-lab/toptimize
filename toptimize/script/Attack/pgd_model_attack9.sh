@@ -25,8 +25,8 @@
 # python attack.py "model-t10/ours-ptb5"  pgd_attack dev-7_Cora_GCN -vr 19 -vm 20 -vt 0 -ptb 0.05 -ca -ts 5 -t 10
 # python attack.py "model-t10/base-ptb10" pgd_attack dev-7_Cora_GCN -vr 19 -vm  0 -vt 0 -ptb 0.1  -ca -ts 0      
 # python attack.py "model-t10/ours-ptb10" pgd_attack dev-7_Cora_GCN -vr 19 -vm 20 -vt 0 -ptb 0.1  -ca -ts 5 -t 10
-python attack.py "model-dev7_11/base-ptb15" pgd_attack dev-7_Cora_GCN -tr 19 -vm  0 -vt 0 -ptb 0.15 -ca -ts 0       
-python attack.py "model-dev7_11/ours-ptb15" pgd_attack dev-7_Cora_GCN -tr 19 -vm 0 -vt 0 -ptb 0.15 -ca -ts 5 -t 11
+# python attack.py "model-dev7_11/base-ptb15" pgd_attack dev-7_Cora_GCN -tr 19 -vm  0 -vt 0 -ptb 0.15 -ca -ts 0       
+# python attack.py "model-dev7_11/ours-ptb15" pgd_attack dev-7_Cora_GCN -tr 19 -vm 0 -vt 0 -ptb 0.15 -ca -ts 5 -t 11
 # python attack.py "model-dev8/base-ptb20" pgd_attack dev-8_Cora_GCN -tr 19 -vm  0 -vt 0 -ptb 0.20 -ca -ts 0      
 # python attack.py "model-dev8/ours-ptb20" pgd_attack dev-8_Cora_GCN -tr 19 -vm 20 -vt 0 -ptb 0.20 -ca -ts 5 -t 10
 
@@ -79,3 +79,12 @@ python attack.py "model-dev7_11/ours-ptb15" pgd_attack dev-7_Cora_GCN -tr 19 -vm
 # Compare train node masked topology
 # python attack.py "model-test/base-ptb20-wnb" pgd_attack dev-8_Cora_GCN -tr 1 -vm  0 -vt 0 -ptb 0.20 -ca -ts 1 -et -wnb
 # python attack.py "model-test/ours-ptb20-wnb" pgd_attack dev-8_Cora_GCN -tr 1 -vm 20 -vt 0 -ptb 0.20 -ca -ts 1 -et -wnb
+
+python attack_gat.py "RA1-base-GAT-ptb5"  random_attack dev-7_Citeseer_GCN -tr 9 -vm  0 -vt 0 -ptb 0.5 -ca -ts 0   
+python attack_gat.py "RA1-ours-GAT-ptb5"  random_attack dev-7_Citeseer_GCN -tr 9 -vm  0 -vt 0 -ptb 0.5 -ca -ts 5 -t 0.2
+python attack_gat.py "RA1-base-GAT-ptb10" random_attack dev-7_Citeseer_GCN -tr 9 -vm  0 -vt 0 -ptb 1.0  -ca -ts 0
+python attack_gat.py "RA1-ours-GAT-ptb10" random_attack dev-7_Citeseer_GCN -tr 9 -vm  0 -vt 0 -ptb 1.0  -ca -ts 5 -t 0.2
+# python attack_gat.py "RA1-citeseer-GAT-ptb15" random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 0.15 -ca -ts 0    0.2 
+# python attack_gat.py "RA1-citeseer-GAT-ptb15" random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 0.15 -ca -ts 5 -t 0.2
+# python attack_gat.py "RA1-citeseer-GAT-ptb20" random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 0.20 -ca -ts 0    0.2
+# python attack_gat.py "RA1-citeseer-GAT-ptb20" random_attack dev-7_Citeseer_GCN -tr 19 -vm  0 -vt 0 -ptb 0.20 -ca -ts 5 -t 0.2
