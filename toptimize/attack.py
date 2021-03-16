@@ -45,8 +45,7 @@ parser.add_argument('-tr', '--total_run', type=int,
                     default=20, help='Starting from run 0, specify the last run')
 parser.add_argument('-ts', '--total_step', default=5, type=int)
 parser.add_argument('-te', '--total_epoch', default=300, type=int)
-parser.add_argument('-s', '--seed', default=None,
-                    type=int, help='If none, random seed.')
+parser.add_argument('-s', '--seed', default=None, type=int, help='If none, random seed.')
 parser.add_argument('-hs', '--hidden_sizes', default=None, type=int)
 parser.add_argument('-l1', '--lambda1', default=1, type=float)
 parser.add_argument('-l2', '--lambda2', default=10, type=float)
@@ -72,7 +71,6 @@ parser.add_argument('-sm', '--save_model', action='store_true')
 parser.add_argument('-ea', '--eval_new_adj', action='store_true')
 args = parser.parse_args()
 
-args.seed = args.seed if args.seed else random.randint(0, 2**32 - 1)
 att_alias = args.att_alias
 victim_name = args.victim_name
 victim_alias, dataset_name, vic_basemodel_name = victim_name.split('_')
@@ -85,7 +83,7 @@ basemodel_name = args.basemodel
 args.dataset_name = dataset_name
 total_step = args.total_step
 total_epoch = args.total_epoch
-seed = args.seed
+seed = args.seed if args.seed else random.randint(0, 2**32 - 1)
 hidden_sizes = args.hidden_sizes
 lambda1 = args.lambda1
 lambda2 = args.lambda2

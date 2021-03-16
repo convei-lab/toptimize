@@ -93,7 +93,7 @@ def evaluate_experiment(step, final, label, adj, gold_adj, confmat_dir, topofig_
             pass
 
     crossplot_topology(adj, gold_adj, label, topofig_dir /
-                       ('topofig'+str(step)+'.png'), sorting=False)
+                       ('topofig'+str(step)+'.png'), sorting=True)
     # plot_tsne(final, label, tsne_dir/('tsne_'+str(step)+'.png'))
 
     return perf_stat
