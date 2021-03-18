@@ -18,7 +18,7 @@ from deeprobust.graph.utils import add_self_loops, preprocess
 from scipy.sparse import csr_matrix
 from torch_geometric.nn import GCN4ConvSIGIR, GAT4ConvSIGIR
 from copy import deepcopy
-
+from torch.distributions.categorical import Categorical
 
 def load_data(data_path, dataset_name, device, use_gdc):
     # Data
@@ -740,3 +740,24 @@ def log_grad(target, params, gradlog_path=None):
     filename = filename.replace(".pdf", "")
     dot.render(filename, directory=dirname, cleanup=True)
     input()
+
+def masked_dist(checkpoint, degree=False, uncertainity=False):
+    logit = checkpoint['logit']
+    edge_index = checkpoint['edge_index']
+    edge_attr = checkpoint['edge_attr']
+    device = logit.device
+
+    node_mask = torch.ones(logit.shape[0]).bool().to(device)
+    if degree:
+        adj = to_dense_adj(edge_index, edge_attr=edge_attr, max_num_nodes=logit.shape[0])[0]
+        node_degree = adj.sum(dim=1)
+        degree_mask = node_degree > node_degree.mean()
+        node_mask = node_mask * degree_mask
+    if uncertainity:
+        pred_prob_dist = Categorical(logits=logit) # (- example * torch.log(example)).sum() # Categorical(probs=torch.exp(logit))
+        pred_unc = pred_prob_dist.entropy()
+        unc_mask = pred_unc > pred_unc.mean()
+        node_mask = node_mask * unc_mask
+    logit = logit[node_mask]
+
+    return logit, node_mask

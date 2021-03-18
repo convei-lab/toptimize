@@ -34,12 +34,14 @@ class Trainer():
         self.checkpoint = {}
         self.final_model = None
 
-    def fit(self, step, total_epoch, lambda1, lambda2, link_pred=None, teacher=None, use_last_epoch=False, use_loss_epoch=False, wnb_run=None):
+    def fit(self, step, total_epoch, lambda1, lambda2, link_pred=None, teacher=None, dist_mask=None, use_last_epoch=False, use_loss_epoch=False, wnb_run=None):
         best_loss, best_acc = 1e10, 0
         self.final_model = self.duplicate(self.model)
 
         log_training(f'Start Training Step {step}', self.logfile)
         log_training(f"{'*'*40}", self.logfile)
+        if teacher is not None:
+            log_training(f"Teacher Nodes: {teacher.shape[0]}", self.logfile)
         for epoch in range(1, total_epoch + 1):
 
             self.model.train()
@@ -48,7 +50,7 @@ class Trainer():
                 self.features, self.edge_index, self.edge_attr)
 
             task_loss, link_loss, dist_loss = self.loss(
-                logit, link_pred=link_pred, teacher=teacher)
+                logit, link_pred=link_pred, teacher=teacher, dist_mask=dist_mask)
 
             total_loss = task_loss + lambda1 * link_loss + lambda2 * dist_loss
             total_loss.backward()
@@ -117,12 +119,13 @@ class Trainer():
         torch.save(self.checkpoint, filename)
         print('Saved as', filename)
 
-    def loss(self, logit, link_pred=None, teacher=None):
+    def loss(self, logit, link_pred=None, teacher=None, dist_mask=None):
         task_loss = F.nll_loss(
             logit[self.train_mask], self.label[self.train_mask])
         link_loss = link_pred.loss(self.model) if link_pred else 0
+        student = logit[dist_mask] if dist_mask is not None else logit
         dist_loss = 0 if teacher is None else F.kl_div(
-            logit, teacher, reduction='none', log_target=True).mean()
+            student, teacher, reduction='none', log_target=True).mean()
         # dist_loss = torch.distributions.kl.kl_divergence(logit, prev_logit).sum(-1)
 
         return task_loss, link_loss, dist_loss
@@ -194,7 +197,7 @@ class Trainer():
             new_adj = torch.zeros_like(adj)
         else:
             new_adj = to_dense_adj(
-                new_edge, max_num_nodes=self.max_num_nodes)[0]\
+                new_edge, max_num_nodes=self.max_num_nodes)[0]
 
 
         # Drop
