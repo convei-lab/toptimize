@@ -54,6 +54,8 @@ class Trainer():
 
         log_training(f'Start Training Step {step}', self.logfile)
         log_training(f"{'*'*40}", self.logfile)
+        if teacher is not None:
+            log_training(f"Teacher Nodes: {teacher.shape[0]}", self.logfile)
         for epoch in range(1, total_epoch + 1):
 
             self.model.train()

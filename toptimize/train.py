@@ -23,6 +23,7 @@ from utils import (
     log_run_metric,
     evaluate_experiment,
     compare_topology,
+    masked_dist,
 )
 from trainer import Trainer
 from model import GCN, GAT, OurGCN, OurGAT
@@ -34,7 +35,7 @@ parser.add_argument('-d', '--dataset', default='Cora', type=str)
 parser.add_argument('-tr', '--total_run', default=0, type=int)
 parser.add_argument('-ts', '--total_step', default=5, type=int)
 parser.add_argument('-te', '--total_epoch', default=300, type=int)
-parser.add_argument('-s', '--seed', default=0, type=int)
+parser.add_argument('-s', '--seed', default=None, type=int, help='If none, random seed.')
 parser.add_argument('-hs', '--hidden_sizes', default=None, type=int)
 parser.add_argument('-l1', '--lambda1', default=1, type=float)
 parser.add_argument('-l2', '--lambda2', default=10, type=float)
@@ -51,8 +52,11 @@ parser.add_argument('-gdc', '--use_gdc', action='store_true',
 parser.add_argument('-z', '--use_metric', action='store_true')
 parser.add_argument('-sm', '--save_model', action='store_true')
 parser.add_argument('-ea', '--eval_new_adj', action='store_true')
+parser.add_argument('-mdd', '--mask_dist_deg', action='store_true')
+parser.add_argument('-mdu', '--mask_dist_unc', action='store_true')
 args = parser.parse_args()
 
+args.seed = args.seed if args.seed else random.randint(0, 2**32 - 1)
 exp_alias = args.exp_alias
 dataset_name = args.dataset
 basemodel_name = args.basemodel
@@ -75,6 +79,8 @@ use_gdc = args.use_gdc
 use_metric = args.use_metric
 save_model = args.save_model
 eval_new_adj = args.eval_new_adj
+mask_dist_deg = args.mask_dist_deg
+mask_dist_unc = args.mask_dist_unc
 
 random.seed(seed)
 torch.manual_seed(seed)
@@ -83,7 +89,6 @@ np.random.seed(seed)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 
 cur_dir = Path(__file__).resolve().parent
 exp_name = exp_alias + '_' + dataset_name + '_' + basemodel_name
@@ -96,7 +101,7 @@ noen_our_vals, noen_our_tests = [], []
 if use_metric:
     all_run_metric = []
 
-for run in list(range(total_run+1)):
+for run in list(range(total_run)):
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@ RUN',
           run, ' @@@@@@@@@@@@@@@@@@@@@@@@@@@@')
 
