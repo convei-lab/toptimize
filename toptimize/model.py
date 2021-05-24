@@ -5,7 +5,6 @@ from torch_geometric.nn import GCN4ConvSIGIR, GAT4ConvSIGIR
 from torch_geometric.utils.sparse import dense_to_sparse
 from utils import log_grad
 
-
 class GCN(torch.nn.Module):
     def __init__(self, nfeat, hidden_sizes, nclass, cached=True, use_gdc=False, return_final=True):
         super(GCN, self).__init__()
@@ -43,6 +42,10 @@ class OurGCN(torch.nn.Module):
             nfeat, hidden_sizes, cached=cached, alpha=alpha, beta=beta, normalize=not use_gdc)
         self.conv2 = GCNConv(hidden_sizes, nclass,
                              cached=cached, normalize=not use_gdc)
+        # self.conv1 = GCNConv(
+        #     nfeat, hidden_sizes, cached=cached, normalize=not use_gdc)
+        # self.conv2 = GCN4ConvSIGIR(hidden_sizes, nclass,
+        #                      cached=cached, alpha=alpha, beta=beta, normalize=not use_gdc)
         self.return_final = return_final
 
         if not cached:
@@ -71,7 +74,7 @@ class GAT(torch.nn.Module):
         self.dropout = dropout
         self.conv1 = GATConv(nfeat, hidden_sizes, heads=nhead, dropout=dropout)
         # On the Pubmed dataset, use heads=8 in conv2.
-        self.conv2 = GATConv(hidden_sizes * nhead, nclass, heads=8, concat=False,
+        self.conv2 = GATConv(hidden_sizes * nhead, nclass, heads=1, concat=False,
                              dropout=dropout)
         self.return_final = return_final
 
@@ -98,7 +101,7 @@ class OurGAT(torch.nn.Module):
         self.conv1 = GAT4ConvSIGIR(
             nfeat, hidden_sizes, alpha=alpha, beta=beta, heads=nhead, dropout=dropout)
         # On the Pubmed dataset, use heads=8 in conv2.
-        self.conv2 = GATConv(hidden_sizes * nhead, nclass, heads=8, concat=False,
+        self.conv2 = GATConv(hidden_sizes * nhead, nclass, heads=1, concat=False,
                              dropout=dropout)
         self.return_final = return_final
 

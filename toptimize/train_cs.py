@@ -1,3 +1,4 @@
+\
 import argparse
 from numpy.lib.function_base import append
 import torch
@@ -26,6 +27,7 @@ from utils import (
 )
 from trainer import Trainer
 from model import GCN, GAT, OurGCN, OurGAT
+from make_data import load_bert_gnn, load_random_adj, load_lbl_agr, load_empty_adj
 
 parser = argparse.ArgumentParser()
 parser.add_argument('exp_alias', type=str)
@@ -46,11 +48,11 @@ parser.add_argument('-le', '--use_last_epoch', action='store_true')
 parser.add_argument('-o', '--use_loss_epoch', action='store_true')
 parser.add_argument('-de', '--drop_edge', action='store_true')
 parser.add_argument('-wnb', '--use_wnb', action='store_true')
-parser.add_argument('-gdc', '--use_gdc', action='store_true',
-                    help='Use GDC preprocessing for GCN.')
+parser.add_argument('-gdc', '--use_gdc', action='store_true', help='Use GDC preprocessing for GCN.')
 parser.add_argument('-z', '--use_metric', action='store_true')
 parser.add_argument('-sm', '--save_model', action='store_true')
 parser.add_argument('-ea', '--eval_new_adj', action='store_true')
+parser.add_argument('-tc', '--text_classi', action='store_true')
 args = parser.parse_args()
 
 exp_alias = args.exp_alias
@@ -75,6 +77,7 @@ use_gdc = args.use_gdc
 use_metric = args.use_metric
 save_model = args.save_model
 eval_new_adj = args.eval_new_adj
+text_classi = args.text_classi
 
 random.seed(seed)
 torch.manual_seed(seed)
@@ -83,7 +86,6 @@ np.random.seed(seed)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 
 cur_dir = Path(__file__).resolve().parent
 exp_name = exp_alias + '_' + dataset_name + '_' + basemodel_name
@@ -133,14 +135,21 @@ for run in list(range(total_run+1)):
 
     # Dataset
     dataset, data = load_data(dataset_path, dataset_name, device, use_gdc)
+    feat_in = dataset.num_features
+    feat_out = dataset.num_classes
 
-    print(label, label.shape)
-    print(data.x, data.x.shape)
-    input()
+    if text_classi:
+        data.x, data.y, data.edge_index, data.edge_attr, data.train_mask, data.val_mask, data.test_mask = load_random_adj('ohsumed', device)
+        # data.x, data.y, data.edge_index, data.edge_attr, data.train_mask, data.val_mask, data.test_mask = load_empty_adj('ohsumed', device)
+        # data.x, data.y, data.edge_index, data.edge_attr, data.train_mask, data.val_mask, data.test_mask = load_lbl_agr('ohsumed', device)
+        # data.x, data.y, data.edge_index, data.edge_attr, data.train_mask, data.val_mask, data.test_mask = load_bert_gnn('ohsumed', device)
+        
+        feat_in = data.x.shape[1]
+        feat_out = torch.max(data.y).item() + 1
 
-    orig_adj = to_dense_adj(data.edge_index, edge_attr=data.edge_attr)
+    orig_adj = to_dense_adj(data.edge_index, edge_attr=data.edge_attr) 
     node_degree = orig_adj.sum(dim=1)[0]
-    data.edge_index = cold_start(data.edge_index, ratio=cold_start_ratio)
+    data.edge_index, data.edge_attr = cold_start(data.edge_index, data.edge_attr, ratio=cold_start_ratio)
     label = data.y
     one_hot_label = F.one_hot(data.y).float()
     adj = to_dense_adj(data.edge_index, max_num_nodes=data.num_nodes)[0]
@@ -158,16 +167,14 @@ for run in list(range(total_run+1)):
 
     if basemodel_name == 'GCN':
         hidden_sizes = hidden_sizes if hidden_sizes else 16
-        model = GCN(dataset.num_features, hidden_sizes,
-                    dataset.num_classes).to(device)
+        model = GCN(feat_in, hidden_sizes, feat_out).to(device)
         optimizer = torch.optim.Adam([
             dict(params=model.conv1.parameters(), weight_decay=5e-4),
             dict(params=model.conv2.parameters(), weight_decay=0)
         ], lr=0.01)
     else:
         hidden_sizes = hidden_sizes if hidden_sizes else 8
-        model = GAT(dataset.num_features, hidden_sizes,
-                    dataset.num_classes).to(device)
+        model = GAT(feat_in, hidden_sizes, feat_out).to(device)
         optimizer = torch.optim.Adam(
             model.parameters(), lr=0.005, weight_decay=0.0005)
     log_model_architecture(step, model, optimizer, archi_path, overwrite=True)
@@ -227,8 +234,7 @@ for run in list(range(total_run+1)):
 
         if basemodel_name == 'GCN':
             hidden_sizes = hidden_sizes if hidden_sizes else 16
-            model = OurGCN(dataset.num_features, hidden_sizes,
-                           dataset.num_classes, alpha=alpha, beta=beta).to(device)
+            model = OurGCN(feat_in, hidden_sizes, feat_out, alpha=alpha, beta=beta).to(device)
             optimizer = torch.optim.Adam([
                 dict(params=model.conv1.parameters(), weight_decay=5e-4),
                 dict(params=model.conv2.parameters(), weight_decay=0)
@@ -236,8 +242,7 @@ for run in list(range(total_run+1)):
             link_pred = GCN4ConvSIGIR
         else:
             hidden_sizes = hidden_sizes if hidden_sizes else 8
-            model = OurGAT(dataset.num_features, hidden_sizes,
-                           dataset.num_classes, alpha=alpha, beta=beta).to(device)
+            model = OurGAT(feat_in, hidden_sizes, feat_out, alpha=alpha, beta=beta).to(device)
             optimizer = torch.optim.Adam(
                 model.parameters(), lr=0.005, weight_decay=0.0005)
             link_pred = GAT4ConvSIGIR

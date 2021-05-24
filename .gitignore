@@ -6,3 +6,5 @@ toptimize.code-workspace
 toptimize/wandb
 experiment
 attack
+backup
+text_data

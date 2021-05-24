@@ -18,6 +18,7 @@ from deeprobust.graph.utils import add_self_loops, preprocess
 from scipy.sparse import csr_matrix
 from torch_geometric.nn import GCN4ConvSIGIR, GAT4ConvSIGIR
 from copy import deepcopy
+import random
 
 
 def load_data(data_path, dataset_name, device, use_gdc):
@@ -93,7 +94,7 @@ def evaluate_experiment(step, final, label, adj, gold_adj, confmat_dir, topofig_
             pass
 
     crossplot_topology(adj, gold_adj, label, topofig_dir /
-                       ('topofig'+str(step)+'.png'), sorting=False)
+                       ('topofig'+str(step)+'.png'), sorting=True)
     # plot_tsne(final, label, tsne_dir/('tsne_'+str(step)+'.png'))
 
     return perf_stat
@@ -130,7 +131,7 @@ def log_dataset_stat(data, dataset, filename):
     log(f'Test node label rate: {int(data.test_mask.sum()) / data.num_nodes:.2f}')
     log(f'Contains isolated nodes: {data.contains_isolated_nodes()}')
     log(f'Contains self-loops: {data.contains_self_loops()}')
-    log(f'Is undirected: {data.is_undirected()}')
+    # log(f'Is undirected: {data.is_undirected()}')
     log(f'Edge index: {data.edge_index} {data.edge_index.shape}')
     log(f'Edge weight: {data.edge_attr}')
 
@@ -363,15 +364,22 @@ def superprint(text, log_filename, overwrite=False):
     log(text)
 
 
-def cold_start(edge_index, ratio=1):
-
+def cold_start(edge_index, edge_attr, ratio=1):
     mask = torch.rand((1, edge_index.size(1)))[0]
     mask = mask <= ratio
     edge_index = edge_index[:, mask]
-    return edge_index
+    edge_attr = edge_attr[mask]
+    return edge_index, edge_attr
 
 
-def add_random_edge(edge_index, num_nodes, ptb_rate=1):
+def add_random_edge(edge_index, num_nodes, ptb_rate=1, seed=0):
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    np.random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
     num_neg_samples = int(edge_index.size(1) * ptb_rate)
     neg_edge_index = negative_sampling(
         edge_index=edge_index,
@@ -740,3 +748,4 @@ def log_grad(target, params, gradlog_path=None):
     filename = filename.replace(".pdf", "")
     dot.render(filename, directory=dirname, cleanup=True)
     input()
+
